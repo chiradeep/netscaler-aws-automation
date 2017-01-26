@@ -5,3 +5,7 @@ module "dns" {
   name        = "vpx-${var.aws_region}-${var.base_name}"
   a_records   = ["${aws_eip.public_lb_ip.*.public_ip}"]
 }
+
+output "vpx_fqdn" {
+   value = "${module.dns.vpx_fqdn}"
+}

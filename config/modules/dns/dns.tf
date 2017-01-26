@@ -6,3 +6,7 @@ resource "aws_route53_record" "vpxautoscale" {
    ttl = "60"
    records = ["${var.a_records}"]
 }
+
+output "vpx_fqdn" {
+   value = "${aws_route53_record.vpxautoscale.fqdn}"
+}
