@@ -10,7 +10,7 @@ Components of the config are:
     - route table for private subnets
     - NAT Gateway 
 
-* Autoscaling Group (asg) deployed in the private subnet, in the default security group. The instances are Ubuntu 16 instances with NGINX installed / running.
+* Autoscaling Group (asg) deployed in the private subnet, in the default security group. The instances are Ubuntu 16 instances with Apache2 .
 * VPX deployment in the public / private subnets using CloudFormation
     - NSIP ENI attached to private subnet, in the default security group
     - Server ENI attached to private subnet, in the default security group
