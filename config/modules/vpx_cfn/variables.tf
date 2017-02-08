@@ -9,9 +9,6 @@ variable "vpx_size" {
   default     = "m4.large"
 }
 
-variable "server_subnet" {
-  description = "The subnet id of the private subnet that hosts the workload autoscaling group"
-}
 
 variable "client_subnet" {
   description = "The subnet id of the public subnet that the VPX will attach to. The VIP ENI will be attached to this subnet"

@@ -25,7 +25,6 @@ resource "aws_cloudformation_stack" "nsvpx" {
 
   parameters {
     VPX           = "${var.vpx_size}"
-    ServerSubnet  = "${var.server_subnet}"
     ClientSubnet  = "${var.client_subnet}"
     NsipSubnet    = "${var.nsip_subnet}"
     VpcID         = "${var.vpc_id}"
@@ -49,4 +48,8 @@ output "vpx_client_ip" {
 
 output "vpx_nsip" {
   value = "${aws_cloudformation_stack.nsvpx.outputs["NSIP"]}"
+}
+
+output "vpx_snip" {
+  value = "${aws_cloudformation_stack.nsvpx.outputs["SNIPs"]}"
 }

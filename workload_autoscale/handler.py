@@ -104,13 +104,13 @@ def find_ns_vpx_instances(tagkey, tagvalue, nsip_subnet_ids, client_subnet_ids,
                         logger.info("NS instance: " + instance_id +
                                     ", nsip ip=" + eni['PrivateIpAddress'])
                         result.append(instance_info)
-                    if eni['Description'] == eni_server_descr:
-                        logger.info("ENI description matches server ENI id=" +
-                                    eni['NetworkInterfaceId'] +
-                                    ", ip=" + eni['PrivateIpAddress'])
-                        instance_info['ns_snip'] = eni['PrivateIpAddress']
-                        logger.info("NS instance: " + instance_id +
-                                    ", server eni ip=" + eni['PrivateIpAddress'])
+                        # check if there are additional IPs. The next one is assumed to be the SNIP
+                        for private_ip in eni['PrivateIpAddresses']:
+                            if not private_ip['Primary']:
+                                instance_info['ns_snip'] = private_ip['PrivateIpAddress']
+                                logger.info("NS instance: " + instance_id +
+                                            ", secondary nsip eni ip=" + private_ip['PrivateIpAddress'])
+                                break
 
     logger.info("find_ns_vpx_instances:found " + str(len(result)) +
                 " instances")

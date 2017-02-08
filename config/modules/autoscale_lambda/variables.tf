@@ -74,5 +74,5 @@ variable "ns_vpx_client_eni_description" {
 variable "ns_vpx_server_eni_description" {
   type        = "string"
   description = "The description attached to the ENI of the NetScaler that hosts the server interface (SNIP). We use this to determine the SNIP of the VPX. Citrix CloudFormation templates usually give this a default value listed below"
-  default     = "ENI connected to server subnet"
+  default     = "ENI connected to NSIP subnet"
 }

@@ -1,7 +1,7 @@
 {
   "AWSTemplateFormatVersion" : "2010-09-09",
 
-    "Description": "Netscaler AWS-VPX template creates a  instance of VPX with 3 ENIs associated to 3 VPC subnets (NSIP, Client, Server) on primary The ENIs are associated with Private IPs and security group defined in VPC. ",
+    "Description": "Netscaler AWS-VPX template creates a  instance of VPX with 2 ENIs associated to 2 VPC subnets (NSIP, Client ) on primary The ENIs are associated with Private IPs and security group defined in VPC. ",
 
     "Parameters": {
         "SecurityGroup": {
@@ -30,10 +30,6 @@
                 "m4.4xlarge",
                 "m4.10xlarge"
             ]
-        },
-        "ServerSubnet": {
-            "Type": "AWS::EC2::Subnet::Id",
-            "Description": "SubnetId of an existing subnet in your Virtual Private Cloud (VPC) dedicated for Server side"
         },
         "ClientSubnet": {
             "Type": "AWS::EC2::Subnet::Id",
@@ -76,6 +72,12 @@
             "Value": {
                  "Fn::GetAtt" : [ "NsipENI", "PrimaryPrivateIpAddress" ]
             }
+        },
+        "SNIPs": {
+            "Description": "Subnet IP of the NSIP ENI",
+            "Value": {
+                 "Fn::Join" : [ ",", {"Fn::GetAtt" : [ "NsipENI", "SecondaryPrivateIpAddresses" ]}]
+            }
         }
     },
 
@@ -103,26 +105,6 @@
            }
         },
 
-        "ServerENI": {
-            "Type": "AWS::EC2::NetworkInterface",
-            "Properties": {
-                "SubnetId": {
-                    "Ref": "ServerSubnet"
-                },
-                "GroupSet": [
-                    {
-                        "Ref": "SecurityGroup"
-                    }
-                ],
-                "Description": "ENI connected to server subnet",
-                "Tags": [
-                    {
-                        "Value": "ServerENI",
-                        "Key": "Purpose"
-                    }
-                ]
-            }
-        },
         "NsipENI": {
             "Type": "AWS::EC2::NetworkInterface",
             "Properties": {
@@ -134,6 +116,7 @@
                         "Ref": "SecurityGroup"
                     }
                 ],
+                "SecondaryPrivateIpAddressCount": 1,
                 "Description": "ENI connected to NSIP subnet",
                 "Tags": [
                     {
@@ -252,12 +235,6 @@
                         "DeviceIndex": "1",
                         "NetworkInterfaceId": {
                             "Ref": "ClientENI"
-                        }
-                    },
-                    {
-                        "DeviceIndex": "2",
-                        "NetworkInterfaceId": {
-                            "Ref": "ServerENI"
                         }
                     }
                 ]
