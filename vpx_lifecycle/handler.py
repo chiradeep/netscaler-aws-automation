@@ -131,7 +131,7 @@ def configure_features(instance_id, ns_url):
                 retry = False
 
 
-def configure_snip(instance_id, ns_url, server_eni, server_subnet):
+def configure_snip(instance_id, ns_url, snip, server_subnet):
     # the SNIP is unconfigured on a freshly installed VPX. We don't
     # know if the SNIP is already configured, but try anyway. Ignore
     # 409 conflict errors
@@ -139,7 +139,6 @@ def configure_snip(instance_id, ns_url, server_eni, server_subnet):
     if NS_PASSWORD == 'SAME_AS_INSTANCE_ID':
         NS_PASSWORD = instance_id
     url = ns_url + 'nitro/v1/config/nsip'
-    snip = server_eni['PrivateIpAddress']
     subnet_len = int(server_subnet['CidrBlock'].split("/")[1])
     mask = (1 << 32) - (1 << 32 >> subnet_len)
     subnet_mask = socket.inet_ntoa(struct.pack(">L", mask))
@@ -179,7 +178,7 @@ def lambda_handler(event, context):
     logger.info(str(event))
     instance_id = event["detail"]["EC2InstanceId"]
     metadata = json.loads(event['detail']['NotificationMetadata'])
-    # metadata = event['detail']['NotificationMetadata']
+    #metadata = event['detail']['NotificationMetadata']
     try:
         public_ips = metadata['public_ips']
         client_sg = metadata['client_security_group']
@@ -220,20 +219,15 @@ def lambda_handler(event, context):
                                                 client_sg, asg_name,
                                                 'ENI connected to client subnet',
                                                 "public")
-            logger.info("Going to create server interface, subnet=" + str(private_subnet))
-            server_interface = create_interface(private_subnet['SubnetId'],
-                                                server_sg, asg_name,
-                                                'ENI connected to server subnet',
-                                                "server")
             logger.info("Going to attach elastic ip")
             eip_assoc = attach_eip(public_ips, client_interface['NetworkInterfaceId'])
             # pause to allow VPX to initialize
-            time.sleep(20)
+            time.sleep(30)
+            logger.info("Going to add a SNIP to the NSIP ENI")
+            snip = add_secondary_ip_to_nsip(instance)
+            configure_snip(instance_id, ns_url, snip, private_subnet)
             logger.info("Going to attach client interface")
             attach_interface(client_interface['NetworkInterfaceId'], instance_id, 1)
-            logger.info("Going to attach server interface")
-            attach_interface(server_interface['NetworkInterfaceId'], instance_id, 2)
-            configure_snip(instance_id, ns_url, server_interface, private_subnet)
             configure_features(instance_id, ns_url)
             time.sleep(20)
             save_config(instance_id, ns_url)
@@ -253,7 +247,7 @@ def lambda_handler(event, context):
                 logger.warn("Removing server network interface {} after attachment failed.".format(
                     server_interface['NetworkInterfaceId']))
                 delete_interface(server_interface)
-            complete_lifecycle_action(event, instance_id, 'ABANDON')
+            complete_lifecycle_action(event, instance_id, 'CONTINUE')
 
         if metadata.get('config_function_name'):
             logger.info("Going to invoke config lambda")
@@ -345,3 +339,25 @@ def delete_interface(network_interface):
     except botocore.exceptions.ClientError as e:
         logger.warn("Error deleting interface {}: {}".format(
             network_interface_id, e.response['Error']['Code']))
+
+def add_secondary_ip_to_nsip(instance):
+    eni = instance['NetworkInterfaces'][0]
+    eni_id = eni['NetworkInterfaceId']
+    secondary_ip = None
+    for private_ip in eni['PrivateIpAddresses']:
+        if not private_ip['Primary']:
+            secondary_ip = private_ip['PrivateIpAddress']
+    if secondary_ip:
+        logger.info("Found a secondary IP already configured: " + secondary_ip)
+        return secondary_ip
+    ec2_client.assign_private_ip_addresses(NetworkInterfaceId=eni_id,
+                                           SecondaryPrivateIpAddressCount=1)
+    enis = ec2_client.describe_network_interfaces(NetworkInterfaceIds=[eni_id])
+    for private_ip in enis['NetworkInterfaces'][0]['PrivateIpAddresses']:
+        if not private_ip['Primary']:
+            secondary_ip = private_ip['PrivateIpAddress']
+    if secondary_ip:
+        logger.info("Assigned a secondary IP: " + secondary_ip)
+    else:
+        logger.warn("DID NOT Assign secondary IP: ")
+    return secondary_ip

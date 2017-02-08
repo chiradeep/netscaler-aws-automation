@@ -17,6 +17,7 @@ resource "aws_iam_policy" "lifecycle_lambda_access" {
             "ec2:ModifyNetworkInterfaceAttribute",
             "ec2:CreateTags",
             "ec2:DescribeInstances",
+	    "ec2:AssignPrivateIpAddresses",
 	    "ec2:AllocateAddress",
 	    "ec2:AssociateAddress",
 	    "ec2:DescribeAddresses",

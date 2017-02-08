@@ -34,9 +34,9 @@ variable "azs" {
    type = "map"
    description = "used to determine azs. do not update or provide on command line"
    default = {
-      "1"      = ["a"]
-      "2"      = ["a", "b"]
-      "3"      = ["a", "b", "c"]
+      "1"      = ["b"]
+      "2"      = ["b", "c"]
+      "3"      = ["b", "b", "d"]
    }
 }
 
