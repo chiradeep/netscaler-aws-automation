@@ -1,6 +1,6 @@
 # Automate NetScaler VPX initialization in AWS using AWS Lambda
 Provides a [AWS Lambda](https://aws.amazon.com/lambda) function to manage the initialization of [Citrix NetScaler VPX instances in AWS](https://aws.amazon.com/marketplace/seller-profile?id=fb9c6078-b60f-47f6-8622-49d5e1d5aca7). When a NetScaler VPX boots up in AWS, it may:
-* need to attach additional interfaces. For example, launching the VPX in an autoscaling group gives it only 1 network interface, but it requires 3 to function
+* need to attach additional interfaces. For example, launching the VPX in an autoscaling group gives it only 1 network interface, but it requires 2 to function
 * need to configure the Subnet IP (SNIP)
 * need to enable features 
 This lambda function performs these initialization routines

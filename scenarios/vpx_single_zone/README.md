@@ -13,7 +13,7 @@ Components of the config are:
 * Autoscaling Group (asg) deployed in the private subnet, in the default security group. The instances are Ubuntu 16 instances with Apache2 .
 * VPX deployment in the public / private subnets using CloudFormation
     - NSIP ENI attached to private subnet, in the default security group
-    - Server ENI attached to private subnet, in the default security group
+    - Additional private IP on the NSIP ENI to serve as SNIP
     - Client ENI attached to public subnet 
     - Security group for Client ENI allowing public access to port 80 and 443
 * Lambda function to perform autoscaling and configuration of VPX
