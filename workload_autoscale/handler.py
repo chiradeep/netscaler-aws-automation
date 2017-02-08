@@ -41,8 +41,8 @@ def fetch_asg_instance_ips(asg, az):
     for group in groups['AutoScalingGroups']:
         instances = group['Instances']
         for instance in instances:
-            if instance['AvailabilityZone'] != az:
-                continue
+            #if instance['AvailabilityZone'] != az:
+            #    continue
             instance_id = instance['InstanceId']
             ec2_reservations = ec2_client.describe_instances(InstanceIds=[instance_id])
             for reservation in ec2_reservations['Reservations']:
