@@ -3,6 +3,7 @@ Provides  [AWS Lambda](https://aws.amazon.com/lambda) functions and [Terraform](
 
 * `workload_autoscale`: The idea is to automate the reconfiguration of the NetScaler VPX when it load balances to a set of backend instances in an [AutoScaling Group (ASG)](https://aws.amazon.com/autoscaling/). As the ASG shrinks and expands, the lambda function reconfigures the NetScaler VPX appropriately.
 * `vpx_lifecyle`: The VPX instances are launched in an Autoscaling group to ensure availability and scale. When a VPX boots up however, it is not ready to receive traffic. This lambda function automates the initialization of the VPX.
+* `stats_lambda`: Lambda function used to store LB stats from the NetScaler VPX in CloudWatch. Uses the NITRO API to retrieve stats from the VPX. CloudWatch metrics include individual metrics per lb vserver/per vpx instance as well as aggregated across the (VPX) auto scaling group
 
 
 Terraform is used to
