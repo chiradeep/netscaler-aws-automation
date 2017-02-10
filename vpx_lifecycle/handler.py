@@ -178,11 +178,10 @@ def lambda_handler(event, context):
     logger.info(str(event))
     instance_id = event["detail"]["EC2InstanceId"]
     metadata = json.loads(event['detail']['NotificationMetadata'])
-    #metadata = event['detail']['NotificationMetadata']
+    # metadata = event['detail']['NotificationMetadata']
     try:
         public_ips = metadata['public_ips']
         client_sg = metadata['client_security_group']
-        server_sg = metadata['server_security_group']
         public_subnets = metadata['public_subnets']
         private_subnets = metadata['private_subnets']
     except KeyError as ke:
@@ -219,8 +218,6 @@ def lambda_handler(event, context):
                                                 client_sg, asg_name,
                                                 'ENI connected to client subnet',
                                                 "public")
-            logger.info("Going to attach elastic ip")
-            eip_assoc = attach_eip(public_ips, client_interface['NetworkInterfaceId'])
             # pause to allow VPX to initialize
             time.sleep(30)
             logger.info("Going to add a SNIP to the NSIP ENI")
@@ -233,6 +230,8 @@ def lambda_handler(event, context):
             save_config(instance_id, ns_url)
             reboot(instance_id, ns_url)
             time.sleep(10)
+            logger.info("Going to attach elastic ip")
+            eip_assoc = attach_eip(public_ips, client_interface['NetworkInterfaceId'])
             complete_lifecycle_action(event, instance_id, 'CONTINUE')
         except:
             logger.warn("Caught exception: " + str(sys.exc_info()[:2]))
@@ -339,6 +338,7 @@ def delete_interface(network_interface):
     except botocore.exceptions.ClientError as e:
         logger.warn("Error deleting interface {}: {}".format(
             network_interface_id, e.response['Error']['Code']))
+
 
 def add_secondary_ip_to_nsip(instance):
     eni = instance['NetworkInterfaces'][0]
