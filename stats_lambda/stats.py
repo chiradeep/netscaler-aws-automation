@@ -14,9 +14,7 @@ logging.getLogger('boto3').setLevel(logging.WARNING)
 logging.getLogger('botocore').setLevel(logging.WARNING)
 
 ec2_client = boto3.client('ec2')
-
 cw_client = boto3.client('cloudwatch')
-
 asg_client = boto3.client('autoscaling')
 
 
@@ -27,7 +25,7 @@ def get_stats(vpx_instance_info):
     r = urllib2.Request(url,  headers=headers)
     try:
         resp = urllib2.urlopen(r)
-        return resp.read()
+        return json.loads(resp.read())
     except urllib2.HTTPError as hte:
         logger.info("Error getting stats : Error code: " +
                     str(hte.code) + ", reason=" + hte.reason)
@@ -86,8 +84,27 @@ def get_vpx_instances(vpx_asg_name):
     return result
 
 
-def put_stats(vpx_info, stats_str):
-    stats = json.loads(stats_str)
+def put_aggr_stats(asg_name, stats_list):
+    aggregate_stats = {}
+    for stat in stats_list:
+        lbstats = stat['lbvserver']
+        for lbstat in lbstats:
+            aggregate_stats['totalrequests'] = aggregate_stats.get('totalrequests', 0) + int(lbstat['totalrequests'])
+            aggregate_stats['totalrequestbytes'] = aggregate_stats.get('totalrequestbytes', 0) + int(lbstat['totalrequestbytes'])
+            aggregate_stats['curclntconnections'] = aggregate_stats.get('curclntconnections', 0) + int(lbstat['curclntconnections'])
+            aggregate_stats['surgecount'] = aggregate_stats.get('surgecount', 0) + int(lbstat['surgecount'])
+
+    dims = {'vpxasg': asg_name}
+    dimensions = make_dimensions(dims)
+    metricData = [make_metric('totalrequests', dimensions, aggregate_stats.get('totalrequests', 0), 'Count'),
+                  make_metric('totalrequestbytes', dimensions, aggregate_stats.get('totalrequestbytes', 0), 'Count'),
+                  make_metric('curclntconnections', dimensions, aggregate_stats.get('curclntconnections', 0), 'Count'),
+                  make_metric('surgecount', dimensions, aggregate_stats.get('surgecount', 0), 'Count'),
+                  ]
+    cw_client.put_metric_data(Namespace='NetScaler', MetricData=metricData)
+
+
+def put_stats(vpx_info, stats):
     lbstats = stats['lbvserver']
     for lbstat in lbstats:
         dims = {'lbname': lbstat['name'], 'vpxinstance': vpx_info['instance-id'], 'vpxasg': vpx_info['asg-name']}
@@ -115,6 +132,9 @@ def lambda_handler(event, context):
         return
 
     vpx_instances = get_vpx_instances(asg_name)
+    stats_list = []
     for vpx in vpx_instances:
         stats = get_stats(vpx)
+        stats_list.append(stats)
         put_stats(vpx, stats)
+    put_aggr_stats(asg_name, stats_list)
