@@ -21,6 +21,12 @@ variable "netscaler_vpc_nsip_subnet_ids" {
   description = "List of subnet ids, e.g., subnet-1abcdef,subnet-2defaae that host the management NIC(s) of the NetScalers"
 }
 
+variable "netscaler_vpc_lambda_subnet_ids" {
+  type        = "list"
+  description = "List of subnet ids, e.g., that the lambda function should attach to. Typically same as netscaler_vpc_nsip_subnet"
+  /* default = ["${var.netscaler_vpc_nsip_subnet_ids}"] */
+}
+
 variable "netscaler_vpc_client_subnet_ids" {
   type        = "list"
   description = "List of subnet ids, e.g., subnet-1abcdef,subnet-2defaae that host the client-side NIC(s) of the NetScalers"

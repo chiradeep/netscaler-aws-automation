@@ -19,7 +19,7 @@ variable "netscaler_security_group_id" {
   description = "The id of the security group that the vpx in the netscaler group have access"
 }
 
-variable "private_subnet" {
+variable "lambda_subnet" {
   type        = "string"
   description = "The subnet-id of the subnet that the lambda function will attach to, typically the same subnet as the NSIP"
 }

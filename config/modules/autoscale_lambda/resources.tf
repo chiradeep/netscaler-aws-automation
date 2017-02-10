@@ -211,7 +211,7 @@ resource "aws_lambda_function" "netscaler_autoscale_lambda" {
   }
 
   vpc_config {
-    subnet_ids         = ["${var.netscaler_vpc_nsip_subnet_ids}"]
+    subnet_ids         = ["${var.netscaler_vpc_lambda_subnet_ids}"]
     security_group_ids = ["${aws_security_group.lambda_security_group.id}"]
   }
 }

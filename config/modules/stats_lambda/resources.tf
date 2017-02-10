@@ -93,7 +93,7 @@ resource "aws_lambda_function" "netscaler_stats_lambda" {
   }
 
   vpc_config {
-    subnet_ids         = ["${var.private_subnet}"]
+    subnet_ids         = ["${var.lambda_subnet}"]
     security_group_ids = ["${aws_security_group.stats_lambda_security_group.id}"]
   }
 }

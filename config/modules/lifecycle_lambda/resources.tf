@@ -100,7 +100,7 @@ resource "aws_lambda_function" "netscaler_lifecycle_lambda" {
   source_code_hash = "${base64sha256(file("${path.module}/../../../vpx_lifecycle/lifecycle.zip"))}"
 
   vpc_config {
-    subnet_ids         = ["${var.netscaler_vpc_nsip_subnet_ids}"]
+    subnet_ids         = ["${var.netscaler_vpc_lambda_subnet_ids}"]
     security_group_ids = ["${aws_security_group.lifecycle_lambda_security_group.id}"]
   }
 }
