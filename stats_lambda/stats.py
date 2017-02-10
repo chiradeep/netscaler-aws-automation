@@ -87,7 +87,10 @@ def get_vpx_instances(vpx_asg_name):
 def put_aggr_stats(asg_name, stats_list):
     aggregate_stats = {}
     for stat in stats_list:
-        lbstats = stat['lbvserver']
+        lbstats = stat.get('lbvserver')
+        if lbstats is None:
+            logger.info("No stats found")
+            continue
         for lbstat in lbstats:
             aggregate_stats['totalrequests'] = aggregate_stats.get('totalrequests', 0) + int(lbstat['totalrequests'])
             aggregate_stats['totalrequestbytes'] = aggregate_stats.get('totalrequestbytes', 0) + int(lbstat['totalrequestbytes'])
@@ -105,7 +108,11 @@ def put_aggr_stats(asg_name, stats_list):
 
 
 def put_stats(vpx_info, stats):
-    lbstats = stats['lbvserver']
+    lbstats = stats.get('lbvserver')
+    if lbstats is None:
+        logger.info("No stats found")
+        return
+
     for lbstat in lbstats:
         dims = {'lbname': lbstat['name'], 'vpxinstance': vpx_info['instance-id'], 'vpxasg': vpx_info['asg-name']}
         dimensions = make_dimensions(dims)
