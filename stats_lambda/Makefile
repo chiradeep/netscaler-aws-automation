@@ -9,8 +9,8 @@ help:
 	@echo "  invoke-lambda       to invoke execution in AWS. May be mismatched to the region"
 
 
-stats.zip: handler.py 
-	zip  -r9 stats.zip handler.py 
+stats.zip: stats.py 
+	zip  -r9 stats.zip stats.py 
 
 package-lambda: stats.zip
 	@echo "create/update lambda deployment package (stats.zip)"

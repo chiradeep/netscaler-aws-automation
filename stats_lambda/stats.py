@@ -2,7 +2,7 @@ import boto3
 import logging
 import sys
 import urllib2
-import time
+import os
 from datetime import datetime
 import json
 
@@ -105,9 +105,16 @@ def put_stats(vpx_info, stats_str):
         cw_client.put_metric_data(Namespace='NetScaler', MetricData=metricData)
 
 
-vpx_instances = get_vpx_instances('beta-ns-autoscale-vpx-asg')
-while True:
+def lambda_handler(event, context):
+    logger.info(str(event))
+    try:
+        asg_name = os.environ['ASG_NAME']
+    except KeyError as ke:
+        logger.warn("Bailing since we can't get the required env var: " +
+                    ke.args[0])
+        return
+
+    vpx_instances = get_vpx_instances(asg_name)
     for vpx in vpx_instances:
         stats = get_stats(vpx)
         put_stats(vpx, stats)
-    time.sleep(30)
