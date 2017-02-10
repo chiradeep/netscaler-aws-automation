@@ -74,10 +74,7 @@ resource "aws_security_group_rule" "allow_stats_lambda_access_to_netscaler" {
   security_group_id = "${var.netscaler_security_group_id}"
 }
 
-/* Lambda function that uses Terraform to configure the NetScaler
- * This lambda function executes inside a VPC and reacts to workload autoscaling events 
- * The VPC subnets and the autoscaling group names are configured using environment variables
- * These environment variables are taken from the TF inputs to this TF config. 
+/* Lambda function that uses NITRO to retrieve lb vserver stats and store them in CloudWatch
  */
 resource "aws_lambda_function" "netscaler_stats_lambda" {
   filename         = "${path.module}/../../../stats_lambda/stats.zip"
@@ -85,7 +82,7 @@ resource "aws_lambda_function" "netscaler_stats_lambda" {
   role             = "${aws_iam_role.role_for_netscaler_stats_lambda.arn}"
   handler          = "stats.lambda_handler"
   runtime          = "python2.7"
-  timeout          = 90
+  timeout          = 20
   memory_size      = 128
   source_code_hash = "${base64sha256(file("${path.module}/../../../stats_lambda/stats.zip"))}"
 
@@ -127,7 +124,7 @@ resource "aws_iam_role_policy_attachment" "lambda_role_auth_exec_lambda" {
 }
 
 /* Attach a policy that authorizes the lambda function to access 
- * cloudwatch
+ * cloudwatch metrics
  */
 resource "aws_iam_role_policy_attachment" "lambda_role_auth_cloudwatch" {
   role       = "${aws_iam_role.role_for_netscaler_stats_lambda.name}"
