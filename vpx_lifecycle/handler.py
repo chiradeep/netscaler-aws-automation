@@ -1,5 +1,7 @@
 import boto3
 import botocore
+from botocore.exceptions import ClientError
+
 import logging
 import os
 import sys
@@ -19,6 +21,7 @@ ec2_client = boto3.client('ec2')
 asg_client = boto3.client('autoscaling')
 
 lambda_client = boto3.client('lambda')
+route53_client = boto3.client('route53')
 
 
 def get_subnet(az, vpc_id, subnet_ids):
@@ -40,26 +43,109 @@ def get_instance(instance_id):
     return None
 
 
-def attach_eip(public_ips_str, interface_id):
+def route53_add_A_record(route53_zoneid, route53_domain, ip):
+    logger.info("Going to add A record " + ip + " to " + route53_domain)
+    existing = route53_client.list_resource_record_sets(HostedZoneId=route53_zoneid, StartRecordType='A',
+                                                        StartRecordName=route53_domain)
+    upsert_values = []
+    for rset in existing[u'ResourceRecordSets']:
+        if rset['Type'] == 'A' and rset['Name'] == route53_domain:
+            for val in rset['ResourceRecords']:
+                upsert_values.append(val)
+    upsert_values.append({'Value': ip})
+
+    # TODO find distinct values
+    distinct = []
+    for v in upsert_values:
+        val = v['Value']
+        if val not in distinct:
+            distinct.append(val)
+    upsert_values = [{'Value': i} for i in distinct]
+
+    response = route53_client.change_resource_record_sets(
+                 HostedZoneId=route53_zoneid,
+                 ChangeBatch={
+                   'Comment': 'Add A record',
+                   'Changes': [
+                              {
+                                'Action': 'UPSERT',
+                                'ResourceRecordSet': {
+                                   'Name': route53_domain,
+                                   'Type': 'A',
+                                   'TTL': 60,
+                                   'ResourceRecords': upsert_values
+                                 }
+                              },
+                              ]
+                 }
+               )
+    logger.info("UPSERT A record: " + response['ChangeInfo']['Comment'])
+
+
+def route53_delete_A_record(route53_zoneid, route53_domain, ip):
+    logger.info("Going to remove A record " + ip + " from " + route53_domain)
+    existing = route53_client.list_resource_record_sets(HostedZoneId=route53_zoneid, StartRecordType='A',
+                                                        StartRecordName=route53_domain)
+    upsert_values = []
+    for rset in existing[u'ResourceRecordSets']:
+        if rset['Type'] == 'A' and rset['Name'] == route53_domain:
+            for val in rset['ResourceRecords']:
+                upsert_values.append(val)
+    upsert_values.remove({'Value': ip})
+    response = route53_client.change_resource_record_sets(
+                 HostedZoneId=route53_zoneid,
+                 ChangeBatch={
+                   'Comment': 'Deleting A record',
+                   'Changes': [
+                              {
+                                'Action': 'UPSERT',
+                                'ResourceRecordSet': {
+                                   'Name': route53_domain,
+                                   'Type': 'A',
+                                   'TTL': 60,
+                                   'ResourceRecords': upsert_values
+                                 }
+                              },
+                              ]
+                 }
+               )
+    logger.info("UPSERT A record: " + response['ChangeInfo']['Comment'])
+
+
+def attach_eip(public_ips_str, interface_id, route53_zoneid, route53_domain):
     filters = [{'Name': 'domain', 'Values': ['vpc']}]
     public_ips = public_ips_str.split(",")
     if len(public_ips) == 0:
         logger.warn("No public ips found in lifecycle hook metadata")
         return
-    addresses = ec2_client.describe_addresses(PublicIps=public_ips,
-                                              Filters=filters)['Addresses']
+    retry = 1
+    associated = False
     free_addr = None
-    for addr in addresses:
-        assoc = addr.get('AssociationId')
-        if assoc is None or assoc == '':
-            free_addr = addr
-            break
-
-    if free_addr is None:
-        raise Exception("Could not find a free elastic ip")
-
-    response = ec2_client.associate_address(AllocationId=addr.get('AllocationId'),
-                                            NetworkInterfaceId=interface_id)
+    while not associated and retry < 3:
+        free_addr = None
+        addresses = ec2_client.describe_addresses(PublicIps=public_ips,
+                                                  Filters=filters)['Addresses']
+        for addr in addresses:
+            assoc = addr.get('AssociationId')
+            if assoc is None or assoc == '':
+                free_addr = addr
+                break
+    
+        if free_addr is None:
+            raise Exception("Could not find a free elastic ip")
+    
+        logger.info("Trying EIP attach with ip: " + free_addr.get('PublicIp'))
+        try:
+            response = ec2_client.associate_address(AllocationId=free_addr.get('AllocationId'),
+                                                    NetworkInterfaceId=interface_id,
+                                                    AllowReassociation=False)
+            associated = True
+        except ClientError as ce:
+            if ce.response['Error']['Code'] == 'Resource.AlreadyAssociated': 
+                # perhaps a different lambda invocation grabbed the ip, let's just try again
+                logger.info("Retrying EIP attach since the ip we grabbed was already associated")
+                retry += 1
+    route53_add_A_record(route53_zoneid, route53_domain, free_addr.get('PublicIp'))
     return response['AssociationId']
 
 
@@ -184,6 +270,10 @@ def lambda_handler(event, context):
         client_sg = metadata['client_security_group']
         public_subnets = metadata['public_subnets']
         private_subnets = metadata['private_subnets']
+        route53_zoneid = metadata.get('route53_hostedzone', 'UNSPECIFIED')
+        route53_domain = metadata.get('route53_domain', 'example.com')
+        if not route53_domain.endswith('.'):
+            route53_domain = route53_domain + '.'
     except KeyError as ke:
         logger.warn("Bailing since we can't get the required variable: " +
                     ke.args[0])
@@ -231,7 +321,7 @@ def lambda_handler(event, context):
             reboot(instance_id, ns_url)
             time.sleep(10)
             logger.info("Going to attach elastic ip")
-            eip_assoc = attach_eip(public_ips, client_interface['NetworkInterfaceId'])
+            eip_assoc = attach_eip(public_ips, client_interface['NetworkInterfaceId'], route53_zoneid, route53_domain)
             complete_lifecycle_action(event, instance_id, 'CONTINUE')
         except:
             logger.warn("Caught exception: " + str(sys.exc_info()[:2]))

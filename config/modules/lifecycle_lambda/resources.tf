@@ -22,6 +22,8 @@ resource "aws_iam_policy" "lifecycle_lambda_access" {
 	    "ec2:AssociateAddress",
 	    "ec2:DescribeAddresses",
 	    "ec2:DisassociateAddress",
+            "route53:ListResourceRecordSets",
+            "route53:ChangeResourceRecordSets",
             "autoscaling:CompleteLifecycleAction",
             "lambda:InvokeFunction" 
         ],

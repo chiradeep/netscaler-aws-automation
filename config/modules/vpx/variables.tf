@@ -52,6 +52,16 @@ variable "config_function_name" {
   description = "The name of the lambda function that configures the NetScaler VPX in reaction to workload autoscaling. Typically name-netscaler_autoscale_lambda"
 }
 
+variable "route53_hostedzone" {
+  description = "The id of the Route53 hosted zone that will be updated with a record set that points to the Elastic IP of the VPXs. E.g., Z1HB0VWHCW333V. If UNSPECIFIED, then the lifecycle lambda function will not make any Route53 changes"
+  default = "UNSPECIFIED"
+}
+
+variable "route53_domain" {
+  description = "The domain name in the Route53 hosted zone that will have A-records added / removed as Elastic Ips are associated / disassociated from the VPX. E.g., vpx-us-east-2.mydomain.com"
+  default = "example.com"
+}
+
 variable "allowed_sizes" {
   type        = "map"
   description = "list of allowed vpx sizes"

@@ -58,7 +58,9 @@ resource "aws_autoscaling_group" "vpx-asg" {
   "public_ips": "${var.public_ips}",
   "private_subnets": ${jsonencode(var.server_subnets)},
   "public_subnets": ${jsonencode(var.client_subnets)},
-  "config_function_name": "${var.config_function_name}"
+  "config_function_name": "${var.config_function_name}",
+  "route53_hostedzone": "${var.route53_hostedzone}",
+  "route53_domain": "${var.route53_domain}"
 }
 EOF
   }

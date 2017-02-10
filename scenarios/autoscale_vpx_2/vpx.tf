@@ -13,4 +13,6 @@ module "vpx" {
   public_ips = "${join(",", aws_eip.public_lb_ip.*.public_ip)}"
   config_function_name = "${module.autoscale_lambda.lambda_name}"
   vpx_asg_desired = "${var.num_az}"
+  route53_hostedzone = "${var.route53_zoneid}"
+  route53_domain = "${module.dns.vpx_fqdn}"
 }
