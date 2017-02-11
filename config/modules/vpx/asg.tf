@@ -46,10 +46,30 @@ resource "aws_autoscaling_group" "vpx-asg" {
   }
 
   initial_lifecycle_hook {
-    name                 = "ns-vpx-lifecycle-hook"
+    name                 = "ns-vpx-lifecycle-launch-hook"
     default_result       = "ABANDON"
     heartbeat_timeout    = 900
     lifecycle_transition = "autoscaling:EC2_INSTANCE_LAUNCHING"
+
+    notification_metadata = <<EOF
+{
+  "client_security_group" : "${aws_security_group.client_sg.id}",
+  "server_security_group" : "${var.server_security_group}",
+  "public_ips": "${var.public_ips}",
+  "private_subnets": ${jsonencode(var.server_subnets)},
+  "public_subnets": ${jsonencode(var.client_subnets)},
+  "config_function_name": "${var.config_function_name}",
+  "route53_hostedzone": "${var.route53_hostedzone}",
+  "route53_domain": "${var.route53_domain}"
+}
+EOF
+  }
+
+  initial_lifecycle_hook {
+    name                 = "ns-vpx-lifecycle-terminate-hook"
+    default_result       = "CONTINUE"
+    heartbeat_timeout    = 180
+    lifecycle_transition = "autoscaling:EC2_INSTANCE_TERMINATING"
 
     notification_metadata = <<EOF
 {

@@ -1,4 +1,3 @@
-
 /*
  * IAM role for the lambda function. Policies that allow the lambda to
  * access resources such as cloudwatch will be attached to this
@@ -88,7 +87,7 @@ resource "aws_lambda_function" "netscaler_stats_lambda" {
 
   environment {
     variables = {
-      ASG_NAME                 = "${var.vpx_autoscaling_group_name}"
+      ASG_NAME = "${var.vpx_autoscaling_group_name}"
     }
   }
 
@@ -97,7 +96,6 @@ resource "aws_lambda_function" "netscaler_stats_lambda" {
     security_group_ids = ["${aws_security_group.stats_lambda_security_group.id}"]
   }
 }
-
 
 /* Attach a policy that authorizes the lambda function to access the 
  * EC2 API to read the autoscaling and NetScaler VPX state

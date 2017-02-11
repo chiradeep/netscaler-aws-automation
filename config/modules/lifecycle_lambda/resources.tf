@@ -151,7 +151,8 @@ resource "aws_cloudwatch_event_rule" "lifecycle_events" {
     "aws.autoscaling"
   ],
   "detail-type": [
-    "EC2 Instance-launch Lifecycle Action"
+    "EC2 Instance-launch Lifecycle Action",
+    "EC2 Instance-terminate Lifecycle Action"
   ],
   "detail": {
      "AutoScalingGroupName": [

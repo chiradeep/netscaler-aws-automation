@@ -24,6 +24,7 @@ variable "netscaler_vpc_nsip_subnet_ids" {
 variable "netscaler_vpc_lambda_subnet_ids" {
   type        = "list"
   description = "List of subnet ids, e.g., that the lambda function should attach to. Typically same as netscaler_vpc_nsip_subnet"
+
   /* default = ["${var.netscaler_vpc_nsip_subnet_ids}"] */
 }
 

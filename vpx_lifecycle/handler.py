@@ -83,6 +83,9 @@ def route53_add_A_record(route53_zoneid, route53_domain, ip):
 
 
 def route53_delete_A_record(route53_zoneid, route53_domain, ip):
+    if route53_zoneid == 'UNSPECIFIED':
+        logger.info("Delete A record: no op since zoneid = UNSPECIFIED")
+        return
     logger.info("Going to remove A record " + ip + " from " + route53_domain)
     existing = route53_client.list_resource_record_sets(HostedZoneId=route53_zoneid, StartRecordType='A',
                                                         StartRecordName=route53_domain)
@@ -145,7 +148,9 @@ def attach_eip(public_ips_str, interface_id, route53_zoneid, route53_domain):
                 # perhaps a different lambda invocation grabbed the ip, let's just try again
                 logger.info("Retrying EIP attach since the ip we grabbed was already associated")
                 retry += 1
-    route53_add_A_record(route53_zoneid, route53_domain, free_addr.get('PublicIp'))
+    if route53_zoneid != 'UNSPECIFIED':
+        route53_add_A_record(route53_zoneid, route53_domain, free_addr.get('PublicIp'))
+
     return response['AssociationId']
 
 
@@ -254,6 +259,19 @@ def configure_snip(instance_id, ns_url, snip, server_subnet):
             else:
                 logger.info("SNIP already configured")
                 retry = False
+        except urllib2.URLError as ure:
+            if ure.code == 110:
+                logger.info("Error configuring SNIP: Error code: " +
+                            str(ure.code) + ", reason=" + ure.reason)
+                retry_count += retry_count + 1
+                if retry_count > 9:
+                    retry = False
+                    break
+                logger.info("NS VPX is not ready to be configured, retrying in 10 seconds")
+                time.sleep(10)
+            else:
+                logger.info("Irrecoverable error")
+                retry = False
 
 
 def invoke_config_lambda(config_function_name, event):
@@ -345,6 +363,20 @@ def lambda_handler(event, context):
                 logger.info("Invoked config lambda")
             except:
                 logger.warn("Caught exception: " + str(sys.exc_info()[:2]))
+    elif event['detail-type'] == "EC2 Instance-terminate Lifecycle Action":
+        logger.info("Handling terminate lifecycle action")
+        instance = get_instance(instance_id)
+        for eni in instance['NetworkInterfaces']:
+            if eni['Description'] == 'ENI connected to client subnet':
+                logger.info("Found client ENI")
+                assoc = eni.get('Association')
+                if assoc is not None:
+                    logger.info("Found client ENI EIP association")
+                    publicIp = assoc.get('PublicIp')
+                    if publicIp is not None:
+                        logger.info("Found client ENI EIP: " + publicIp)
+                        logger.info("Going to remove A record")
+                        route53_delete_A_record(route53_zoneid, route53_domain, publicIp)
 
 
 def complete_lifecycle_action(event, instance_id, action):
