@@ -13,6 +13,8 @@ Components of the config are:
 * Workload Autoscaling Group (`workload_asg.tf`) deployed in the private subnets, in the default security group. The instances are Ubuntu 16 instances with Apache2
 * Autoscaled VPX deployment in the public / private subnets 
     - Launch lifecycle hook calls a lambda function that attaches additional ENIs and performs initialization on the freshly launched VPX
+* Alarm and Scaling Policy configuration for the VPX ASG
+* Stats lambda function to pull lb vserver stats from all VPX and post them to CloudWatch
 * Workload autoscaling Lambda function to reconfigure  VPX(s) when workload autoscaling group changes
 	- Deployed in private subnet 
 	- NAT Gateway allows access to all AWS services except S3
@@ -20,10 +22,9 @@ Components of the config are:
 	- CloudWatch events are hooked up to lambda invocation.
 	- Lambda environment variables are derived from defaults or VPX config
 	- DynamoDb table for Mutual exclusion
-* Stats lambda function to pull lb vserver stats from all VPX and post them to CloudWatch
 * VPC Endpoint to AWS S3, allowing workload autoscaling lambda access to S3
-* A Linux jumpbox in the public subnet with security group rules allowing it access to the VPX private ENIs and ssh access from the Internet. Jumpbox has an auto-assigned public IP.
 * A periodic CloudWatch event (see `invoke.tf`) that triggers the workload autoscaling ambda function every 5 minutes. This is to provoke the initial VPX LB configuration.  The periodic invocation should also take care of those scenarios where the regular lambda invocation failed due to various reasons 
+* A Linux jumpbox in the public subnet with security group rules allowing it access to the VPX private ENIs and ssh access from the Internet. Jumpbox has an auto-assigned public IP.
 
 <img src="../../docs/vpx_autoscale.png" width="720"/>
 
@@ -60,6 +61,7 @@ terraform apply -var 'key_name=my_us_east_1_keypair' -var 'aws_region=us-east-1'
 * Jumpbox public IP:
   - `terraform output jumpbox_publicip`
 * List of elastic ips
+* The URL to access the loadbalanced endpoints on the VPX
 * From the `vpc module` : `terraform output -module vpc`
  - `vpc_id` - does what it says on the tin
  - `private_subnets` - list of private subnet ids
@@ -67,13 +69,12 @@ terraform apply -var 'key_name=my_us_east_1_keypair' -var 'aws_region=us-east-1'
  - `public_route_table_ids` - list of public route table ids
  - `private_route_table_ids` - list of private route table ids
  - `default_security_group_id` - VPC default security group id string
- - `nat_eips` - list of Elastic IP ids (if any are provisioned)
 
 
 # NOTES
 * The resources created with this configuration will incur charges (mostly for the VPX )
-* You may run out of Elastic IPs. Two are used per availability zone
+* You may run out of Elastic IPs. Each VPX will require one EIP
 * The username for the jumpbox is `ec2-user`. For the workload ASG instances, it is `ubuntu`. For the NetScaler instances, it is `nsroot`.
 
 # BUGS
-`terraform destroy` may hang while trying to destroy the VPC. This is because creating the lambda function automatically creates an ENI (unknown to terraform). Deleting the lambda does not delete the ENI. This may be fixed in later versions of terraform (> v0.8.1)
+`terraform destroy` may hang while trying to destroy the VPC. This is because creating the lambda function automatically creates an ENI (unknown to terraform). Deleting the lambda does not delete the ENI. This may be fixed in later versions of terraform (> v0.8.4)
