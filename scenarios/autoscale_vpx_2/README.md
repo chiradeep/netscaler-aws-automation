@@ -1,8 +1,9 @@
 # Modular Terraform config for a complete AWS VPX deployment
-This folder contains a modularized terraform config to deploy a fully AWS stack that is load balanced by a VPX.
+<img src="../../docs/vpx_scaleout_scalein.png" width="720"/>
+This folder contains a modularized terraform config to deploy a full AWS stack that is load balanced by an autoscaled group of Citrix NetScaler VPX.
 Components of the config are:
 
-* VPC in one or more availability zones (variable `num_azs` to control this)
+* VPC in one or more availability zones (variable `num_azs` to control this) [ `vpc.tf` ]
     - one public subnet per AZ
     - one private subnet  per AZ
     - default security group. 
@@ -10,28 +11,30 @@ Components of the config are:
     - route table for private subnets
     - ~~NAT Gateway per AZ~~. NAT Gateways take up scarce Elastic IPs. We will create a NAT Instance and route private subnet traffic destined to the Internet through the NAT instance
 
-* Workload Autoscaling Group (`workload_asg.tf`) deployed in the private subnets, in the default security group. The instances are Ubuntu 16 instances with Apache2
-* Autoscaled VPX deployment in the public / private subnets 
+* Pre-allocated Elastic IPs to be mapped to the autoscaled VPX [`eip.tf`]
+* Autoscaled VPX deployment in the public / private subnets  [ `vpx.tf` ]
     - Launch lifecycle hook calls a lambda function that attaches additional ENIs and performs initialization on the freshly launched VPX
-* Alarm and Scaling Policy configuration for the VPX ASG
-* Stats lambda function to pull lb vserver stats from all VPX and post them to CloudWatch
-* Workload autoscaling Lambda function to reconfigure  VPX(s) when workload autoscaling group changes
+* Alarm and Scaling Policy configuration for the VPX ASG [`alarms.tf`]
+* Stats lambda function to pull lb vserver stats from all VPX and post them to CloudWatch [`stats_lambda.tf`]
+* Workload Autoscaling Group (`workload_asg.tf`) deployed in the private subnets, in the default security group. The instances are Ubuntu 16 instances with Apache2
+* Workload autoscaling Lambda function to reconfigure  VPX(s) when workload autoscaling group changes [`autoscale_lambda.tf`]
 	- Deployed in private subnet 
-	- NAT Gateway allows access to all AWS services except S3
+	- NAT Instance allows access to all AWS services except S3
 	- IAM role has policies allowing access to S3 buckets, EC2 API to read VPX and ASG configuration
-	- CloudWatch events are hooked up to lambda invocation.
+	- Autoscaling CloudWatch events are hooked up to lambda invocation.
 	- Lambda environment variables are derived from defaults or VPX config
 	- DynamoDb table for Mutual exclusion
-* VPC Endpoint to AWS S3, allowing workload autoscaling lambda access to S3
-* A periodic CloudWatch event (see `invoke.tf`) that triggers the workload autoscaling ambda function every 5 minutes. This is to provoke the initial VPX LB configuration.  The periodic invocation should also take care of those scenarios where the regular lambda invocation failed due to various reasons 
-* A Linux jumpbox in the public subnet with security group rules allowing it access to the VPX private ENIs and ssh access from the Internet. Jumpbox has an auto-assigned public IP.
+	- VPC Endpoint to AWS S3, allowing workload autoscaling lambda access to S3 [`vpc_endpoint.tf`]
+	- A periodic CloudWatch event (see `invoke.tf`) that triggers the workload autoscaling ambda function every 5 minutes. This is to provoke the initial VPX LB configuration.  The periodic invocation should also take care of those scenarios where the regular lambda invocation failed due to various reasons 
+* A Linux jumpbox in the public subnet with security group rules allowing it access to the VPX private ENIs and ssh access from the Internet. Jumpbox has an auto-assigned public IP.[`jumpbox.tf`]
 
 <img src="../../docs/vpx_autoscale.png" width="720"/>
 
 # Pre-requisites
-AWS account with sufficient privileges to create all the above. 
+AWS account with sufficient privileges to create all the above.
+ 
 * Run `terraform get` to initialize the modules.
-* Build the lambda binary and the config zip:
+* Build the lambda zips and the config zip:
 
 
 ```
@@ -54,8 +57,9 @@ popd
 * The Route53 hosted zone ID (`route53_zoneid`) and Route53 domain associated with the hosted zone (`route53_domain`)
 
 Example:
+
 ```
-terraform apply -var 'key_name=my_us_east_1_keypair' -var 'aws_region=us-east-1' -var 'base_name=qa-staging' -var `num_az=2` -var 'route53_zoneid=Z2KS2AZGXW564V' -var 'route53_domain=microscaler.xyz.'
+terraform apply -var 'key_name=my_us_east_1_keypair' -var 'aws_region=us-east-1' -var 'base_name=qa-staging' -var 'num_az=2' -var 'route53_zoneid=Z2KS2AZGXW564V' -var 'route53_domain=microscaler.xyz.'
 
 ```
 
