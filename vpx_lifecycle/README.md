@@ -3,11 +3,12 @@ Provides a [AWS Lambda](https://aws.amazon.com/lambda) function to manage the in
 * need to attach additional interfaces. For example, launching the VPX in an autoscaling group gives it only 1 network interface, but it requires 2 to function
 * need to configure the Subnet IP (SNIP)
 * need to enable features 
+* need to attach an Elastic IP to the public facing nic (ENI)
 This lambda function performs these initialization routines
 
 
 # Theory of operation
-The lambda function can be hooked to the `INSTANCE_LAUNCH` lifecycle hook for an autoscaling group that is configured to launch NetScaler VPX in AWS
+The lambda function can be hooked to the `INSTANCE_LAUNCH` or `INSTANCE_TERMINATING` lifecycle hook for an autoscaling group that is configured to launch NetScaler VPX in AWS
 
 
 # Pre-requisites
