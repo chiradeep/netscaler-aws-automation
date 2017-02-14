@@ -1,5 +1,7 @@
 # Modular Terraform config for a complete AWS VPX deployment
+
 <img src="../../docs/vpx_scaleout_scalein.png" width="720"/>
+
 This folder contains a modularized terraform config to deploy a full AWS stack that is load balanced by an autoscaled group of Citrix NetScaler VPX.
 Components of the config are:
 
