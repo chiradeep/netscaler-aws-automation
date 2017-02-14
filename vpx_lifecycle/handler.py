@@ -54,7 +54,6 @@ def route53_add_A_record(route53_zoneid, route53_domain, ip):
                 upsert_values.append(val)
     upsert_values.append({'Value': ip})
 
-    # TODO find distinct values
     distinct = []
     for v in upsert_values:
         val = v['Value']
@@ -95,24 +94,46 @@ def route53_delete_A_record(route53_zoneid, route53_domain, ip):
             for val in rset['ResourceRecords']:
                 upsert_values.append(val)
     upsert_values.remove({'Value': ip})
-    response = route53_client.change_resource_record_sets(
-                 HostedZoneId=route53_zoneid,
-                 ChangeBatch={
-                   'Comment': 'Deleting A record',
-                   'Changes': [
-                              {
-                                'Action': 'UPSERT',
-                                'ResourceRecordSet': {
-                                   'Name': route53_domain,
-                                   'Type': 'A',
-                                   'TTL': 60,
-                                   'ResourceRecords': upsert_values
-                                 }
-                              },
-                              ]
-                 }
-               )
-    logger.info("UPSERT A record: " + response['ChangeInfo']['Comment'])
+    if len(upsert_values) > 0:
+        logger.info("DELETE A record: " + str(len(upsert_values)) + " records left for " + route53_domain)
+        response = route53_client.change_resource_record_sets(
+                     HostedZoneId=route53_zoneid,
+                     ChangeBatch={
+                       'Comment': 'Deleting A record',
+                       'Changes': [
+                                  {
+                                    'Action': 'UPSERT',
+                                    'ResourceRecordSet': {
+                                       'Name': route53_domain,
+                                       'Type': 'A',
+                                       'TTL': 60,
+                                       'ResourceRecords': upsert_values
+                                     }
+                                  },
+                                  ]
+                     }
+                   )
+        logger.info("DELETE A record: " + response['ChangeInfo']['Comment'])
+    else:
+        logger.info("DELETE A record: " + "no records left for " + route53_domain)
+        response = route53_client.change_resource_record_sets(
+                     HostedZoneId=route53_zoneid,
+                     ChangeBatch={
+                       'Comment': 'Deleting A record',
+                       'Changes': [
+                                  {
+                                    'Action': 'DELETE',
+                                    'ResourceRecordSet': {
+                                       'Name': route53_domain,
+                                       'Type': 'A',
+                                       'TTL': 60,
+                                       'ResourceRecords': upsert_values
+                                     }
+                                  },
+                                  ]
+                     }
+                   )
+        logger.info("DELETE A record: " + response['ChangeInfo']['Comment'])
 
 
 def attach_eip(public_ips_str, interface_id, route53_zoneid, route53_domain):
@@ -133,10 +154,10 @@ def attach_eip(public_ips_str, interface_id, route53_zoneid, route53_domain):
             if assoc is None or assoc == '':
                 free_addr = addr
                 break
-    
+
         if free_addr is None:
             raise Exception("Could not find a free elastic ip")
-    
+
         logger.info("Trying EIP attach with ip: " + free_addr.get('PublicIp'))
         try:
             response = ec2_client.associate_address(AllocationId=free_addr.get('AllocationId'),
@@ -144,7 +165,7 @@ def attach_eip(public_ips_str, interface_id, route53_zoneid, route53_domain):
                                                     AllowReassociation=False)
             associated = True
         except ClientError as ce:
-            if ce.response['Error']['Code'] == 'Resource.AlreadyAssociated': 
+            if ce.response['Error']['Code'] == 'Resource.AlreadyAssociated':
                 # perhaps a different lambda invocation grabbed the ip, let's just try again
                 logger.info("Retrying EIP attach since the ip we grabbed was already associated")
                 retry += 1

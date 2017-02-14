@@ -25,6 +25,6 @@ variable "public_subnet" {
 
 
 variable "private_route_table_ids" {
-    type = "list"
+   type = "list"
    description = "List of private route table ids that will have a route to the NAT instance added for 0.0.0.0/0"
 }

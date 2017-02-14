@@ -14,16 +14,13 @@ variable "num_az" {
   description = "Number of AZs"
 }
 
-variable "dns_enabled" {
-   description = "Set to 1 if you want the route53 zone to be updated with the VPX public IPs"
-   default = false
-}
-
 variable "route53_zoneid" {
-   description = "The route53 zoneid that will be updated with A records pointing to the VPX public IPs. Used if dns_enabled=1. Note the default provided will not work in your env"
-   default = "Z1PC0CAHCW564V"
+   description = "The route53 zoneid that will be updated with A records pointing to the VPX public IPs. "
 }
 
+variable "route53_domain" {
+   description = "The domain associated with the route53 zoneid"
+}
 
 variable "vpc_cidr" {
    description = "The VPC cidr. If this is updated, take care to update variables public_subnets and private_subnets"

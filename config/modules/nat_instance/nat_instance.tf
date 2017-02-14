@@ -112,7 +112,7 @@ resource "aws_instance" "nat" {
 
 resource "aws_route" "natroute" {
   count                  = "${var.num_az}"
-  route_table_id         = "${private_route_table_ids[count.index]}"
+  route_table_id         = "${var.private_route_table_ids[count.index]}"
   destination_cidr_block = "0.0.0.0/0"
   instance_id            = "${aws_instance.nat.id}"
 }
