@@ -3,9 +3,9 @@ module "vpc" {
 
   name = "${var.base_name}-ns-autoscale-vpc"
 
-  cidr            = "172.90.0.0/16"
-  private_subnets = ["172.90.1.0/24"]
-  public_subnets  = ["172.90.101.0/24"]
+  cidr            = "172.29.0.0/16"
+  private_subnets = ["172.29.1.0/24"]
+  public_subnets  = ["172.29.101.0/24"]
 
   enable_nat_gateway      = "true"
   map_public_ip_on_launch = "true"

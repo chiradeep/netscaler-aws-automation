@@ -24,7 +24,7 @@ variable "route53_domain" {
 
 variable "vpc_cidr" {
    description = "The VPC cidr. If this is updated, take care to update variables public_subnets and private_subnets"
-   default = "172.90.0.0/16"
+   default = "172.29.0.0/16"
 }
 
 variable "azs" {
@@ -41,9 +41,9 @@ variable "public_subnets" {
    type = "map"
    description = "used to determine public subnets"
    default = {
-      "1"      = ["172.90.101.0/24"]
-      "2"      = ["172.90.101.0/24", "172.90.111.0/24"]
-      "3"      = ["172.90.101.0/24", "172.90.111.0/24", "172.90.121.0/24"]
+      "1"      = ["172.29.101.0/24"]
+      "2"      = ["172.29.101.0/24", "172.29.111.0/24"]
+      "3"      = ["172.29.101.0/24", "172.29.111.0/24", "172.29.121.0/24"]
    }
 }
 
@@ -51,8 +51,8 @@ variable "private_subnets" {
    type = "map"
    description = "used to determine private_subnets subnets"
    default = {
-      "1"      = ["172.90.1.0/24"]
-      "2"      = ["172.90.1.0/24", "172.90.11.0/24"]
-      "3"      = ["172.90.1.0/24", "172.90.11.0/24", "172.90.21.0/24"]
+      "1"      = ["172.29.1.0/24"]
+      "2"      = ["172.29.1.0/24", "172.29.11.0/24"]
+      "3"      = ["172.29.1.0/24", "172.29.11.0/24", "172.29.21.0/24"]
    }
 }
