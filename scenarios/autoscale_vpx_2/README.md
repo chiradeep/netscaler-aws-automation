@@ -51,10 +51,12 @@ popd
 * Keypair name available in the region 
 * Base name to derive names of AWS resources. Since this derives S3 bucket names, keep it short and conformant to DNS naming conventions.
 * Number of AZ (`num_az`)
+* The Route53 hosted zone ID (`route53_zoneid`) and Route53 domain associated with the hosted zone (`route53_domain`)
 
 Example:
 ```
-terraform apply -var 'key_name=my_us_east_1_keypair' -var 'aws_region=us-east-1' -var 'base_name=qa-staging' -var `num_az=2`
+terraform apply -var 'key_name=my_us_east_1_keypair' -var 'aws_region=us-east-1' -var 'base_name=qa-staging' -var `num_az=2` -var 'route53_zoneid=Z2KS2AZGXW564V' -var 'route53_domain=microscaler.xyz.'
+
 ```
 
 # Outputs
