@@ -25,3 +25,7 @@ The lifecycle hook is called with INSTANCE_LAUNCHING or INSTANCE_TERMINATING whi
 If a VPX dies or is terminated unexpectedly then the ASG will re-create the VPX. ASGs are designed to balance between availability zones, so typically one will be launched per AZ (depending on the variable `desired_asg_size`)
 
 It is assumed that each VPX will require one EIP and that the EIPs are pre-created. The list of EIP is supplied in the notification metadata. The lifecycle hook lambda function tries to find a free one in this list when a new VPX is launched and it needs to associate an EIP to the client ENI of the new VPX.
+
+
+# Notes
+The VPX that is launched is the 1000 Mbps Standard edition (tip: it is controlled by the `product-code` in the `aws_ami.netscalervpx` data source). The launch may fail since it is a marketplace AMI and you need to accept the terms and conditions first. If it fails due to this reason, you will get an email asking you to subscribe. After you subscribe, re-running this terraform config should succeed.
