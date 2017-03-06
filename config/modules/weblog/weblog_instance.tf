@@ -1,0 +1,156 @@
+data "aws_ami" "amzn_centos7_ami" {
+  most_recent = true
+
+  filter {
+    name   = "product-code"
+    values = ["aw0evgkw8e5c1q413zgy5pjce"]
+  }
+
+  filter {
+    name   = "architecture"
+    values = ["x86_64"]
+  }
+}
+
+resource "aws_security_group" "weblog_sg" {
+  name = "access_to_weblog"
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["${var.vpc_cidr}"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["${var.vpc_cidr}"]
+  }
+
+  ingress {
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["${var.vpc_cidr}"]
+  }
+
+  egress {
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags {
+    Name = "WeblogSG"
+  }
+
+  vpc_id = "${var.vpc_id}"
+}
+
+resource "aws_instance" "weblog" {
+  ami                         = "${data.aws_ami.amzn_centos7_ami.id}"
+  subnet_id                   = "${var.public_subnet}"
+  instance_type               = "t2.micro"
+  vpc_security_group_ids      = ["${aws_security_group.weblog_sg.id}"]
+  associate_public_ip_address = "true"
+  iam_instance_profile = "${aws_iam_instance_profile.WeblogInstanceProfile.id}"
+
+  tags {
+    Name = "${var.base_name}-weblog"
+  }
+
+  key_name = "${var.key_name}"
+}
+
+resource "aws_iam_instance_profile" "WeblogInstanceProfile" {
+  name_prefix = "WeblogInstanceProfile"
+  roles       = ["${aws_iam_role.WeblogInstanceInstanceRole.name}"]
+}
+
+resource "aws_iam_role" "WeblogInstanceInstanceRole" {
+  name_prefix = "WeblogInstanceInstanceRole"
+  path        = "/"
+
+  assume_role_policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": "sts:AssumeRole",
+            "Principal": {
+               "Service": "ec2.amazonaws.com"
+            },
+            "Effect": "Allow",
+            "Sid": ""
+        }
+    ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "WebLogInstance" {
+  name = "WebLogInstance"
+  role = "${aws_iam_role.WeblogInstanceInstanceRole.id}"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+        {
+         "Effect": "Allow",
+         "Action": ["s3:GetObject","s3:PutObject"],
+         "Resource": "${aws_s3_bucket.log_bucket.arn}/*"
+        },
+        {
+         "Effect": "Allow",
+         "Action": ["s3:ListBucket"],
+         "Resource": "${aws_s3_bucket.log_bucket.arn}"
+        }
+        
+  ]
+}
+EOF
+}
+
+
+output "weblog_publicip" {
+  value = "${aws_instance.weblog.public_ip}"
+}
