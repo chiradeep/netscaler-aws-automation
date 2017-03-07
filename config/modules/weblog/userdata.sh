@@ -59,7 +59,8 @@ After=network.target
 Type=simple
 User=nswl
 ExecStart=/usr/local/netscaler/bin/nswl -start -f /etc/weblog_client.conf
-Restart=on-abort
+Restart=always
+RestartSec=5
 
 
 [Install]
