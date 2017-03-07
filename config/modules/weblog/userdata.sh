@@ -1,7 +1,8 @@
 #!/bin/bash -v
 exec 1> >(logger -s -t $(basename $0)) 2>&1
 
-NS_PASSWORD=nsroot
+NS_INSTANCE_ID=i-098a3c3bead
+NS_PASSWORD=\$NS_INSTANCE_ID
 NSIP=172.31.23.100
 
 yum -y install expect
@@ -19,7 +20,7 @@ begin default
 	logFormat		W3C %{%Y-%m-%dT%H:%M:%S}t %v %A:%p  %M %s %j %J "%m %S://%v%U" %+{user-agent}i
 	logInterval		Hourly
 	logFileSizeLimit	10
-	logFilenameFormat	/home/nswl/logs/logs%{%y%m%d}t.log
+	logFilenameFormat	/home/nswl/logs/netscaler-%{%y-%m-%d}t.\$NS_INSTANCE_ID.log
 end default
 
 EOF
@@ -48,6 +49,31 @@ EOF
 chmod a+x /usr/local/bin/addns.exp
 
 /usr/local/bin/addns.exp $NSIP $NS_PASSWORD
+
+cat > /usr/local/bin/rotate.sh << EOF
+#!/bin/bash
+set -x
+directory=/home/nswl/logs/
+cd \$directory
+for logfile in *.log.*
+do
+	gzip \$logfile
+done
+
+for logzip in *.log.*.gz
+do
+	d=\${logzip#*-}
+	d=\${d%%.*}
+	aws s3 cp \$logzip s3://test-logrotate-foo/dt=\$d/\$logzip
+	rm \$logzip
+done
+EOF
+chmod a+x /usr/local/bin/rotate.sh
+
+cat > /etc/crontab.d/rotate << EOF
+55 * * * * nswl /usr/local/bin/rotate.sh /home/nswl/logs/
+
+EOF
 
 
 cat > /etc/systemd/system/nswl.service << EOF
