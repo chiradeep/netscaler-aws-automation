@@ -1,16 +1,16 @@
-data "aws_ami" "amzn_centos7_ami" {
+
+data "aws_ami" "amzn_linux_ami" {
   most_recent = true
-
   filter {
-    name   = "product-code"
-    values = ["aw0evgkw8e5c1q413zgy5pjce"]
+    name = "owner-alias"
+    values = ["amazon"]
   }
-
   filter {
-    name   = "architecture"
-    values = ["x86_64"]
+    name = "name"
+    values = ["amzn-ami-hvm-*-gp2"]
   }
 }
+
 
 resource "aws_security_group" "weblog_sg" {
   name = "access_to_weblog"
@@ -86,7 +86,7 @@ resource "aws_security_group" "weblog_sg" {
 }
 
 resource "aws_instance" "weblog" {
-  ami                         = "${data.aws_ami.amzn_centos7_ami.id}"
+  ami                         = "${data.aws_ami.amzn_linux_ami.id}"
   subnet_id                   = "${var.public_subnet}"
   instance_type               = "t2.micro"
   vpc_security_group_ids      = ["${aws_security_group.weblog_sg.id}"]
