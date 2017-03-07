@@ -91,10 +91,16 @@ resource "aws_instance" "weblog" {
   instance_type               = "t2.micro"
   vpc_security_group_ids      = ["${aws_security_group.weblog_sg.id}"]
   associate_public_ip_address = "true"
-  iam_instance_profile = "${aws_iam_instance_profile.WeblogInstanceProfile.id}"
+  iam_instance_profile        = "${aws_iam_instance_profile.WeblogInstanceProfile.id}"
+  user_data                   = "${file("userdata.sh")}"
 
   tags {
     Name = "${var.base_name}-weblog"
+  }
+
+  root_block_device {
+    delete_on_termination = true
+    volume_size           = 30
   }
 
   key_name = "${var.key_name}"
@@ -149,7 +155,6 @@ resource "aws_iam_role_policy" "WebLogInstance" {
 }
 EOF
 }
-
 
 output "weblog_publicip" {
   value = "${aws_instance.weblog.public_ip}"
