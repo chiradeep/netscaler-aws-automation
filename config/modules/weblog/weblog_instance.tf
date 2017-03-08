@@ -1,16 +1,16 @@
-
 data "aws_ami" "amzn_linux_ami" {
   most_recent = true
+
   filter {
-    name = "owner-alias"
+    name   = "owner-alias"
     values = ["amazon"]
   }
+
   filter {
-    name = "name"
+    name   = "name"
     values = ["amzn-ami-hvm-*-gp2"]
   }
 }
-
 
 resource "aws_security_group" "weblog_sg" {
   name = "access_to_weblog"
@@ -85,6 +85,7 @@ resource "aws_security_group" "weblog_sg" {
   vpc_id = "${var.vpc_id}"
 }
 
+/*
 resource "aws_instance" "weblog" {
   ami                         = "${data.aws_ami.amzn_linux_ami.id}"
   subnet_id                   = "${var.public_subnet}"
@@ -105,6 +106,7 @@ resource "aws_instance" "weblog" {
 
   key_name = "${var.key_name}"
 }
+*/
 
 resource "aws_iam_instance_profile" "WeblogInstanceProfile" {
   name_prefix = "WeblogInstanceProfile"
@@ -156,6 +158,8 @@ resource "aws_iam_role_policy" "WebLogInstance" {
 EOF
 }
 
+/*
 output "weblog_publicip" {
   value = "${aws_instance.weblog.public_ip}"
 }
+*/
