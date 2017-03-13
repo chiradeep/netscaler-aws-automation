@@ -23,20 +23,6 @@ resource "aws_security_group" "weblog_sg" {
   }
 
   ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["${var.vpc_cidr}"]
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["${var.vpc_cidr}"]
-  }
-
-  ingress {
     from_port   = -1
     to_port     = -1
     protocol    = "icmp"
@@ -83,6 +69,19 @@ resource "aws_security_group" "weblog_sg" {
   }
 
   vpc_id = "${var.vpc_id}"
+}
+
+/* The weblog instance needs to be able to access the NetScaler on its management ports
+ * This rule adds to an already existing security group to allow this access
+ */
+resource "aws_security_group_rule" "allow_weblog_access_to_netscaler" {
+  type                     = "ingress"
+  from_port                = 3011
+  to_port                  = 3011
+  protocol                 = "tcp"
+  source_security_group_id = "${aws_security_group.weblog_sg.id}"
+
+  security_group_id = "${var.netscaler_security_group_id}"
 }
 
 /*
@@ -163,3 +162,4 @@ output "weblog_publicip" {
   value = "${aws_instance.weblog.public_ip}"
 }
 */
+

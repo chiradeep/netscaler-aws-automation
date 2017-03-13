@@ -33,10 +33,10 @@ cat > /etc/weblog_client.conf <<EOF
 Filter default
 
 begin default
-	logFormat		W3C %{%Y-%m-%dT%H:%M:%S}t %v %A:%p  %M %s %j %J "%m %S://%v%U" %+{user-agent}i
+	logFormat		W3C %{{%Y-%m-%dT%H:%M:%S}}t %v %A:%p  %M %s %j %J "%m %S://%v%U" %+{{user-agent}}i
 	logInterval		Hourly
 	logFileSizeLimit	10
-	logFilenameFormat	/home/nswl/logs/netscaler-%{%y-%m-%d}t.$NS_INSTANCE_ID.log
+	logFilenameFormat	/home/nswl/logs/netscaler-%{{%y-%m-%d}}t.$NS_INSTANCE_ID.log
 end default
 
 EOF
@@ -78,8 +78,8 @@ done
 
 for logzip in *.log.*.gz
 do
-	d=\${logzip#*-}
-	d=\${d%%.*}
+	d=\${{logzip#*-}}
+	d=\${{d%%.*}}
         aws s3 cp \$logzip s3://${2}/dt=\$d/\$logzip
 	rm \$logzip
 done
@@ -116,6 +116,7 @@ CHECK PROCESS nswl MATCHING nswl
 EOF
 
 service monit start
+sleep 5
 monit start all
 """
 
@@ -140,7 +141,8 @@ def get_instance(instance_id):
 
 
 def find_weblog_instances(tagkey, tagvalue):
-    filters = [{'Name': 'tag:{}'.format(tagkey), 'Values': [tagvalue]}]
+    filters = [{'Name': 'tag:{}'.format(tagkey), 'Values': [tagvalue]},
+               {'Name': 'instance-state-name', 'Values': ['running', 'pending']}]
     result = []
     reservations = ec2_client.describe_instances(Filters=filters)
     for r in reservations["Reservations"]:
@@ -149,7 +151,7 @@ def find_weblog_instances(tagkey, tagvalue):
             instance_id = instance['InstanceId']
             logger.info("Found Weblog instance " + instance_id + ", state=" +
                         instance['State']['Name'])
-            if instance['State']['Name'] != 'running':
+            if instance['State']['Name'] not in ['running', 'pending']:
                 continue
             instance_info['instance_id'] = instance_id
             instance_info['az'] = instance['Placement']['AvailabilityZone']
@@ -187,8 +189,8 @@ def lambda_handler(event, context):
         vpx_tag_key = os.environ['NS_VPX_TAG_KEY']
         vpx_tag_value = os.environ['NS_VPX_TAG_VALUE']
         vpc_id = os.environ['NS_VPX_VPC_ID']
-        weblog_tag_key = os.environ['NS_WEBLOG_TAG_KEY']
-        weblog_tag_value = os.environ['NS_WEBLOG_TAG_VALUE']
+        weblog_tag_key = os.environ['WEBLOG_TAG_KEY']
+        weblog_tag_value = os.environ['WEBLOG_TAG_VALUE']
     except KeyError as ke:
         logger.warn("Bailing since we can't get the required env var: " +
                     ke.args[0])
@@ -226,7 +228,7 @@ def create_weblog_instance(vpx_id, weblog_tag_key, weblog_tag_value):
         instance_type = os.environ['WEBLOG_INSTANCE_TYPE']
         image_id = os.environ['WEBLOG_IMAGE_ID']
         iam_profile_arn = os.environ['WEBLOG_IAM_PROFILE_ARN']
-        iam_profile_name = os.environ['WEBLOG_IAM_PROFILE_NAME']
+        # iam_profile_name = os.environ['WEBLOG_IAM_PROFILE_NAME']
         s3_bucket = os.environ['WEBLOG_S3_BUCKET']
     except KeyError as ke:
         logger.warn("Bailing since we can't get the required env var: " +
@@ -252,7 +254,7 @@ def create_weblog_instance(vpx_id, weblog_tag_key, weblog_tag_value):
         SubnetId=subnet_id,
         IamInstanceProfile={
             'Arn': iam_profile_arn,
-            'Name': iam_profile_name
+            # 'Name': iam_profile_name
         },
     )
     instance_id = web_log_reservation['Instances'][0]['InstanceId']

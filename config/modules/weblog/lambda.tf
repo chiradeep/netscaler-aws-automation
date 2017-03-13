@@ -18,11 +18,16 @@ resource "aws_iam_policy" "weblog_lambda_access" {
             "ec2:TerminateInstances",
             "ec2:StartInstances",
             "ec2:StopInstances",
-            "ec2:RebootInstances",
+            "ec2:RebootInstances"
         ],
         "Effect": "Allow",
         "Resource": "*"
-      }
+      },
+      {
+      "Effect":"Allow",
+      "Action":"iam:PassRole",
+      "Resource":"${aws_iam_role.WeblogInstanceInstanceRole.arn}"
+    }
   ]
 }
 EOF
@@ -58,7 +63,7 @@ EOF
 resource "aws_security_group" "weblog_lambda_security_group" {
   description = "Security group for vpx weblog client instance lifecycle lambda in VPC"
   name        = "${var.base_name}-netscaler_weblog_lambda_sg"
-  vpc_id      = "${var.netscaler_vpc_id}"
+  vpc_id      = "${var.vpc_id}"
 
   egress {
     from_port   = 0
@@ -91,26 +96,26 @@ data "archive_file" "lambda_zip" {
  * This lambda function executes inside a VPC and reacts to vpx autoscaling 
  */
 resource "aws_lambda_function" "netscaler_weblog_lambda" {
-  filename         = "${path.module}/lambda.zip"
+  filename         = "${data.archive_file.lambda_zip.output_path}"
   function_name    = "${var.base_name}-netscaler_vpx_weblog_lambda"
   role             = "${aws_iam_role.role_for_netscaler_weblog_lambda.arn}"
   handler          = "handler.lambda_handler"
   runtime          = "python2.7"
   timeout          = 300
   memory_size      = 128
-  source_code_hash = "${base64sha256(file("${path.module}/lambda.zip"))}"
+  source_code_hash = "${base64sha256(file("${data.archive_file.lambda_zip.output_path}"))}"
 
   environment {
     variables = {
       NS_VPX_TAG_KEY          = "${var.ns_vpx_tag_key}"
       NS_VPX_TAG_VALUE        = "${var.ns_vpx_tag_value}"
-      NS_VPX_VPC_ID           = "${var.netscaler_vpc_id}"
+      NS_VPX_VPC_ID           = "${var.vpc_id}"
       WEBLOG_TAG_KEY          = "${var.weblog_tag_key}"
       WEBLOG_TAG_VALUE        = "${var.weblog_tag_value}"
       WEBLOG_SG_ID            = "${aws_security_group.weblog_sg.id}"
       WEBLOG_IMAGE_ID         = "${data.aws_ami.amzn_linux_ami.id}"
       WEBLOG_INSTANCE_TYPE    = "${var.weblog_instance_type}"
-      WEBLOG_S3_BUCKET        = "${aws_s3_bucket.log_bucket.name}"
+      WEBLOG_S3_BUCKET        = "${aws_s3_bucket.log_bucket.bucket}"
       WEBLOG_IAM_PROFILE_ARN  = "${aws_iam_instance_profile.WeblogInstanceProfile.arn}"
       WEBLOG_IAM_PROFILE_NAME = "${aws_iam_instance_profile.WeblogInstanceProfile.name}"
     }
@@ -196,16 +201,15 @@ resource "aws_lambda_permission" "cloudwatch_weblog_event_to_lambda" {
 }
 
 /* invoke the lambda every 5 minutes */
-resource "aws_cloudwatch_event_rule" "invoke_lambda_periodic" {
-  name                = "invoke_lambda_periodic"
+resource "aws_cloudwatch_event_rule" "invoke_weblog_lambda_periodic" {
+  name                = "invoke_weblog_lambda_periodic"
   schedule_expression = "rate(5 minutes)"
 }
 
-resource "aws_cloudwatch_event_target" "invoke_lambda_periodic" {
-  rule      = "${aws_cloudwatch_event_rule.invoke_lambda_periodic.name}"
-  target_id = "netscaler_autoscale_lambda"
+resource "aws_cloudwatch_event_target" "invoke_weblog_lambda_periodic" {
+  rule      = "${aws_cloudwatch_event_rule.invoke_weblog_lambda_periodic.name}"
+  target_id = "netscaler_weblog_lambda"
   arn       = "${aws_lambda_function.netscaler_weblog_lambda.arn}"
-  principal = "events.amazonaws.com"
 }
 
 resource "aws_lambda_permission" "allow_cloudwatch_periodic_to_invoke_lambda" {
@@ -213,5 +217,5 @@ resource "aws_lambda_permission" "allow_cloudwatch_periodic_to_invoke_lambda" {
   action        = "lambda:InvokeFunction"
   function_name = "${aws_lambda_function.netscaler_weblog_lambda.arn}"
   principal     = "events.amazonaws.com"
-  source_arn    = "${aws_cloudwatch_event_rule.invoke_lambda_periodic.arn}"
+  source_arn    = "${aws_cloudwatch_event_rule.invoke_weblog_lambda_periodic.arn}"
 }

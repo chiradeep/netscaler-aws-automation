@@ -101,4 +101,5 @@ CHECK PROCESS nswl MATCHING nswl
 EOF
 
 service monit start
+sleep 5
 monit start all
