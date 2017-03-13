@@ -33,10 +33,10 @@ cat > /etc/weblog_client.conf <<EOF
 Filter default
 
 begin default
-	logFormat		W3C %{{%Y-%m-%dT%H:%M:%S}}t %v %A:%p  %M %s %j %J "%m %S://%v%U" %+{{user-agent}}i
-	logInterval		Hourly
-	logFileSizeLimit	10
-	logFilenameFormat	/home/nswl/logs/netscaler-%{{%y-%m-%d}}t.$NS_INSTANCE_ID.log
+    logFormat        W3C %{{%Y-%m-%dT%H:%M:%S}}t %v %A:%p  %M %s %j %J "%m %S://%v%U" %+{{user-agent}}i
+    logInterval        Hourly
+    logFileSizeLimit    10
+    logFilenameFormat    /home/nswl/logs/netscaler-%{{%y-%m-%d}}t.$NS_INSTANCE_ID.log
 end default
 
 EOF
@@ -73,15 +73,15 @@ directory=/home/nswl/logs/
 cd \$directory
 for logfile in *.log.*
 do
-	gzip \$logfile
+    gzip \$logfile
 done
 
 for logzip in *.log.*.gz
 do
-	d=\${{logzip#*-}}
-	d=\${{d%%.*}}
+    d=\${{logzip#*-}}
+    d=\${{d%%.*}}
         aws s3 cp \$logzip s3://${2}/dt=\$d/\$logzip
-	rm \$logzip
+    rm \$logzip
 done
 EOF
 chmod a+x /usr/local/bin/rotate.sh
@@ -93,9 +93,9 @@ EOF
 
 cat > /etc/monit.conf << EOF
 set daemon  120           # check services at 2-minute intervals
-    with start delay 240  # optional: delay the first check by 4-minutes (by 
+    with start delay 240  # optional: delay the first check by 4-minutes (by
                           # default Monit check immediately after Monit start)
-set logfile syslog facility log_daemon                       
+set logfile syslog facility log_daemon
 set idfile /var/.monit.id
 set statefile /var/.monit.state
 set httpd port 2812 and
@@ -215,10 +215,15 @@ def lambda_handler(event, context):
                     unmatched_weblog_instances.append(weblog_id)
     to_create = list(set(vpx_ids) - set(matched_vpxs))
     to_delete = unmatched_weblog_instances
+    logger.info("Need to create " + str(len(to_create)) + " weblog instances")
+    logger.info("Need to delete " + str(len(to_delete)) + " weblog instances")
+
     for vpx_id in to_create:
+        logger.info("Going to create weblog instance for vpx " + vpx_id)
         create_weblog_instance(vpx_id, weblog_tag_key, weblog_tag_value)
 
     for weblog_id in to_delete:
+        logger.info("Going to delete weblog instance: " + weblog_id)
         delete_weblog_instance(weblog_id)
 
 
@@ -229,6 +234,7 @@ def create_weblog_instance(vpx_id, weblog_tag_key, weblog_tag_value):
         image_id = os.environ['WEBLOG_IMAGE_ID']
         iam_profile_arn = os.environ['WEBLOG_IAM_PROFILE_ARN']
         # iam_profile_name = os.environ['WEBLOG_IAM_PROFILE_NAME']
+        key_name = os.environ['WEBLOG_SSH_KEY_NAME']
         s3_bucket = os.environ['WEBLOG_S3_BUCKET']
     except KeyError as ke:
         logger.warn("Bailing since we can't get the required env var: " +
@@ -241,6 +247,7 @@ def create_weblog_instance(vpx_id, weblog_tag_key, weblog_tag_value):
     userdata = USERDATA.format(vpx_id, nsip, s3_bucket)
     web_log_reservation = ec2_client.run_instances(
         ImageId=image_id,
+        KeyName=key_name,
         MinCount=1,
         MaxCount=1,
         SecurityGroupIds=[
@@ -259,16 +266,23 @@ def create_weblog_instance(vpx_id, weblog_tag_key, weblog_tag_value):
     )
     instance_id = web_log_reservation['Instances'][0]['InstanceId']
     state = web_log_reservation['Instances'][0]['State']['Name']
+    tags = [{"Key": weblog_tag_key, "Value": weblog_tag_value},
+            {"Key": "vpx_id", "Value": vpx_id}]
+    ec2_client.create_tags(Resources=[instance_id], Tags=tags)
+    logger.info("Weblog instance " + instance_id + " for VPX " + vpx_id + " has been tagged")
     # wait 3 minutes?
     i = 0
     while state != 'running' and i < 30:
         time.sleep(6)
         web_log_instance = get_instance(instance_id)
-        state = web_log_instance['State']['Name']
+        if web_log_instance is not None:
+            state = web_log_instance['State']['Name']
         i = i + 1
+    logger.info("Weblog instance " + instance_id + " for VPX " + vpx_id + " found running after " + str(i * 6) + " seconds")
     if state != 'running':
         delete_weblog_instance(instance_id)
 
 
 def delete_weblog_instance(weblog_id):
     ec2_client.terminate_instances(InstanceIds=[weblog_id])
+    logger.info("Deleted weblog instance " + weblog_id)

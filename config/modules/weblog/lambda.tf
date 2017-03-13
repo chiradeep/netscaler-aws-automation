@@ -118,6 +118,7 @@ resource "aws_lambda_function" "netscaler_weblog_lambda" {
       WEBLOG_S3_BUCKET        = "${aws_s3_bucket.log_bucket.bucket}"
       WEBLOG_IAM_PROFILE_ARN  = "${aws_iam_instance_profile.WeblogInstanceProfile.arn}"
       WEBLOG_IAM_PROFILE_NAME = "${aws_iam_instance_profile.WeblogInstanceProfile.name}"
+      WEBLOG_SSH_KEY_NAME     = "${var.key_name}"
     }
   }
 
