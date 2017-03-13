@@ -28,6 +28,7 @@ Components of the config are:
 	- DynamoDb table for Mutual exclusion
 	- VPC Endpoint to AWS S3, allowing workload autoscaling lambda access to S3 [`vpc_endpoint.tf`]
 	- A periodic CloudWatch event (see `invoke.tf`) that triggers the workload autoscaling ambda function every 5 minutes. This is to provoke the initial VPX LB configuration.  The periodic invocation should also take care of those scenarios where the regular lambda invocation failed due to various reasons 
+* Weblog clients (one per VPX) and a lambda function to auto-scale them as VPX instances come and go. The Weblog instances periodically move their logs to an S3 bucket
 * A Linux jumpbox in the public subnet with security group rules allowing it access to the VPX private ENIs and ssh access from the Internet. Jumpbox has an auto-assigned public IP.[`jumpbox.tf`]
 
 <img src="../../docs/vpx_autoscale.png" width="720"/>
@@ -56,7 +57,7 @@ popd
 * Keypair name available in the region 
 * Base name to derive names of AWS resources. Since this derives S3 bucket names, keep it short and conformant to DNS naming conventions.
 * Number of AZ (`num_az`)
-* The Route53 hosted zone ID (`route53_zoneid`) and Route53 domain associated with the hosted zone (`route53_domain`)
+* The Route53 hosted zone ID (`route53_zoneid`) and Route53 domain associated with the hosted zone (`route53_domain`). Note that the domain has to end with a period!
 
 Example:
 
