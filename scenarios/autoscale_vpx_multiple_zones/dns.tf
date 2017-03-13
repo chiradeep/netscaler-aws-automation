@@ -7,5 +7,5 @@ module "dns" {
 }
 
 output "vpx_fqdn" {
-   value = "${module.dns.vpx_fqdn}"
+  value = "${module.dns.vpx_fqdn}"
 }

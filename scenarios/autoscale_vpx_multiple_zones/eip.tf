@@ -1,7 +1,8 @@
 resource "aws_eip" "public_lb_ip" {
-  vpc      = true
+  vpc = true
+
   #count   = "${length(module.vpc.public_subnets)}"
-  count    = "${var.num_az}"
+  count = "${var.num_az}"
 }
 
 output "public_ips" {
