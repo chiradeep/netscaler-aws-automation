@@ -87,7 +87,7 @@ EOF
 chmod a+x /usr/local/bin/rotate.sh
 
 cat > /etc/cron.d/rotate << EOF
-55 * * * * nswl /usr/local/bin/rotate.sh /home/nswl/logs/
+*/10 * * * * nswl /usr/local/bin/rotate.sh /home/nswl/logs/
 
 EOF
 
