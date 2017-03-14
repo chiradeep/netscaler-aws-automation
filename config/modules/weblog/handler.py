@@ -33,7 +33,7 @@ cat > /etc/weblog_client.conf <<EOF
 Filter default
 
 begin default
-    logFormat        W3C %{{%Y-%m-%dT%H:%M:%S}}t %v %A:%p  %M %s %j %J "%m %S://%v%U" %+{{user-agent}}i
+    logFormat        W3C %{%Y-%m-%d%H:%M:%S}t %a %u %S %A %p %m %U %q %s %j %J %M %H %+{user-agent}i %+{cookie} i%+{referer}i
     logInterval        Hourly
     logFileSizeLimit    10
     logFilenameFormat    /home/nswl/logs/netscaler-%{{%y-%m-%d}}t.$NS_INSTANCE_ID.log
@@ -80,7 +80,7 @@ for logzip in *.log.*.gz
 do
     d=\${{logzip#*-}}
     d=\${{d%%.*}}
-        aws s3 cp \$logzip s3://${2}/dt=\$d/\$logzip
+    aws s3 cp \$logzip s3://{2}/dt=\$d/\$logzip
     rm \$logzip
 done
 EOF
