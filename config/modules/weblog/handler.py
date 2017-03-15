@@ -78,7 +78,9 @@ cd \$directory
 declare -a arr
 for f in *.log.*; do   /usr/sbin/lsof \$f > /dev/null;   [[ "\$?" -eq 1 ]] && arr+=(\$f);   done
 
-for a in \${{arr[@]}}; do   gzip -f -v \$a; done
+t=\$(date +%H_%M)
+
+for a in \${{arr[@]}}; do   mv \$a \$a.\$t; gzip -f -v \$a.\$t; done
 
 for logzip in *.log.*.gz
 do

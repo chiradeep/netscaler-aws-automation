@@ -160,46 +160,6 @@ resource "aws_iam_role_policy_attachment" "lambda_role_auth_lifecyclehook_lambda
   policy_arn = "${aws_iam_policy.weblog_lambda_access.arn}"
 }
 
-/* CloudWatch Event Rule that captures the autoscaling events in the vpx scaling group
- */
-resource "aws_cloudwatch_event_rule" "weblog_events" {
-  name        = "${var.base_name}-vpx_asg_weblog_events"
-  description = "Capture all ASG lifecycle events"
-
-  event_pattern = <<PATTERN
-{
-  "source": [
-    "aws.autoscaling"
-  ],
-  "detail-type": [
-    "EC2 Instance-launch Lifecycle Action",
-    "EC2 Instance-terminate Lifecycle Action"
-  ],
-  "detail": {
-     "AutoScalingGroupName": [
-      "${var.vpx_autoscaling_group_name}"
-     ]
-  }
-}
-PATTERN
-}
-
-/* Target the invocation of the lambda function whenever the scaling event happens */
-resource "aws_cloudwatch_event_target" "asg_autoscale_trigger_netscaler_lambda" {
-  rule = "${aws_cloudwatch_event_rule.weblog_events.name}"
-  arn  = "${aws_lambda_function.netscaler_weblog_lambda.arn}"
-}
-
-/* Permit the CloudWatch events service to invoke the lambda function whenever there is change
- * in the autoscaling group
- */
-resource "aws_lambda_permission" "cloudwatch_weblog_event_to_lambda" {
-  statement_id  = "AllowExecutionFromCloudWatchEvent"
-  action        = "lambda:InvokeFunction"
-  function_name = "${aws_lambda_function.netscaler_weblog_lambda.arn}"
-  principal     = "events.amazonaws.com"
-  source_arn    = "${aws_cloudwatch_event_rule.weblog_events.arn}"
-}
 
 /* invoke the lambda every 5 minutes */
 resource "aws_cloudwatch_event_rule" "invoke_weblog_lambda_periodic" {
