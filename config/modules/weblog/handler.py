@@ -89,6 +89,7 @@ do
     aws s3 cp \$logzip s3://{2}/dt=\$d/\$logzip
     rm \$logzip
 done
+monit restart all
 EOF
 chmod a+x /usr/local/bin/rotate.sh
 
