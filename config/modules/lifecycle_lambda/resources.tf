@@ -25,6 +25,7 @@ resource "aws_iam_policy" "lifecycle_lambda_access" {
             "route53:ListResourceRecordSets",
             "route53:ChangeResourceRecordSets",
             "autoscaling:CompleteLifecycleAction",
+            "autoscaling:RecordLifecycleActionHeartbeat",
             "lambda:InvokeFunction" 
         ],
         "Effect": "Allow",

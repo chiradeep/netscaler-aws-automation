@@ -29,6 +29,8 @@ resource "aws_autoscaling_group" "vpx-asg" {
   desired_capacity     = "${var.vpx_asg_desired}"
   force_delete         = true
   launch_configuration = "${aws_launch_configuration.vpx-lc.name}"
+  termination_policies = ["NewestInstance"]
+
 
   lifecycle {
     create_before_destroy = true
@@ -68,7 +70,7 @@ EOF
   initial_lifecycle_hook {
     name                 = "ns-vpx-lifecycle-terminate-hook"
     default_result       = "CONTINUE"
-    heartbeat_timeout    = 180
+    heartbeat_timeout    = 360
     lifecycle_transition = "autoscaling:EC2_INSTANCE_TERMINATING"
 
     notification_metadata = <<EOF

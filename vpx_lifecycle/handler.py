@@ -387,17 +387,23 @@ def lambda_handler(event, context):
     elif event['detail-type'] == "EC2 Instance-terminate Lifecycle Action":
         logger.info("Handling terminate lifecycle action")
         instance = get_instance(instance_id)
-        for eni in instance['NetworkInterfaces']:
-            if eni['Description'] == 'ENI connected to client subnet':
-                logger.info("Found client ENI")
-                assoc = eni.get('Association')
-                if assoc is not None:
-                    logger.info("Found client ENI EIP association")
-                    publicIp = assoc.get('PublicIp')
-                    if publicIp is not None:
-                        logger.info("Found client ENI EIP: " + publicIp)
-                        logger.info("Going to remove A record")
-                        route53_delete_A_record(route53_zoneid, route53_domain, publicIp)
+        num_autoscaling_heartbeats = tag_heartbeat_count(instance)
+        if num_autoscaling_heartbeats == 1:
+            for eni in instance['NetworkInterfaces']:
+                if eni['Description'] == 'ENI connected to client subnet':
+                    logger.info("Found client ENI")
+                    assoc = eni.get('Association')
+                    if assoc is not None:
+                        logger.info("Found client ENI EIP association")
+                        publicIp = assoc.get('PublicIp')
+                        if publicIp is not None:
+                            logger.info("Found client ENI EIP: " + publicIp)
+                            logger.info("Going to remove A record")
+                            route53_delete_A_record(route53_zoneid, route53_domain, publicIp)
+        if num_autoscaling_heartbeats < 3:
+            record_lifecycle_action_heartbeat(event, instance_id)
+        else:
+            complete_lifecycle_action(event, instance_id, 'CONTINUE')
 
 
 def complete_lifecycle_action(event, instance_id, action):
@@ -410,6 +416,20 @@ def complete_lifecycle_action(event, instance_id, action):
         )
     except botocore.exceptions.ClientError as e:
         logger.warn("Error completing life cycle hook for instance {}: {}".format(
+            instance_id, e.response['Error']['Code']))
+
+
+def record_lifecycle_action_heartbeat(event, instance_id):
+    try:
+        asg_client.record_lifecycle_action_heartbeat(
+            LifecycleHookName=event['detail']['LifecycleHookName'],
+            AutoScalingGroupName=event['detail']['AutoScalingGroupName'],
+            LifecycleActionToken=event['detail']['LifecycleActionToken'],
+            InstanceId=instance_id
+        )
+        logger.info("Recorded life cycle action heartbeat for instance {}".format(instance_id))
+    except botocore.exceptions.ClientError as e:
+        logger.warn("Error recording life cycle action heartbeat for instance {}: {}".format(
             instance_id, e.response['Error']['Code']))
 
 
@@ -504,3 +524,16 @@ def add_secondary_ip_to_nsip(instance):
     else:
         logger.warn("DID NOT Assign secondary IP: ")
     return secondary_ip
+
+
+def tag_heartbeat_count(instance):
+    """ Record the autoscaling heartbeat counts in a tag and return the current value"""
+    tags = instance['Tags']
+    heartbeat_count = 0
+    for t in tags:
+        if t['Key'] == 'Autoscale_Termination_Heartbeat_Count':
+            heartbeat_count = t['Value']
+            break
+    heartbeat_count += 1
+    ec2_client.create_tags(Resources=[instance['InstanceId']], Tags=[{"Key": "Autoscale_Termination_Heartbeat_Count", "Value": str(heartbeat_count)}])
+    return heartbeat_count
