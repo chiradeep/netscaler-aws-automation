@@ -1,6 +1,7 @@
 import boto3
 import os
 import time
+from datetime import datetime, timedelta
 
 import logging
 
@@ -33,7 +34,7 @@ cat > /etc/weblog_client.conf <<EOF
 Filter default
 
 begin default
-    logFormat        W3C %{%Y-%m-%d%H:%M:%S}t %a %u %S %A %p %m %U %q %s %j %J %M %H %+{user-agent}i %+{cookie} i%+{referer}i
+    logFormat        W3C %{{%Y-%m-%d%H:%M:%S}}t %a %u %S %A %p %m %U %q %s %j %J %M %H %+{{user-agent}}i %+{{cookie}} i%+{{referer}}i
     logInterval        Hourly
     logFileSizeLimit    10
     logFilenameFormat    /home/nswl/logs/netscaler-%{{%y-%m-%d}}t.$NS_INSTANCE_ID.log
@@ -68,13 +69,16 @@ chmod a+x /usr/local/bin/addns.exp
 
 cat > /usr/local/bin/rotate.sh << EOF
 #!/bin/bash
+exec 1> >(logger -s -t \$(basename \$0)) 2>&1
+
 set -x
 directory=/home/nswl/logs/
 cd \$directory
-for logfile in *.log.*
-do
-    gzip \$logfile
-done
+
+declare -a arr
+for f in *.log.*; do   /usr/sbin/lsof \$f > /dev/null;   [[ "\$?" -eq 1 ]] && arr+=(\$f);   done
+
+for a in \${{arr[@]}}; do   gzip -f -v \$a; done
 
 for logzip in *.log.*.gz
 do
@@ -87,7 +91,7 @@ EOF
 chmod a+x /usr/local/bin/rotate.sh
 
 cat > /etc/cron.d/rotate << EOF
-*/10 * * * * nswl /usr/local/bin/rotate.sh /home/nswl/logs/
+*/10 * * * * root /usr/local/bin/rotate.sh /home/nswl/logs/
 
 EOF
 
@@ -284,5 +288,25 @@ def create_weblog_instance(vpx_id, weblog_tag_key, weblog_tag_value):
 
 
 def delete_weblog_instance(weblog_id):
-    ec2_client.terminate_instances(InstanceIds=[weblog_id])
-    logger.info("Deleted weblog instance " + weblog_id)
+    delete_after = datetime.utcnow() + timedelta(seconds=660)
+    weblog_instance = get_instance(weblog_id)
+    tags = weblog_instance['Tags']
+    tag_found = False
+    for t in tags:
+        if t['Key'] == 'DeleteAfter':
+            delete_after = datetime.strptime(str(t['Value']), "%Y-%m-%d %H:%M:%S.%f")
+            logger.info("Found tag DeleteAfter on  instance " + weblog_id + ", value= " + str(delete_after))
+            tag_found = True
+            break
+
+    logger.info("Time now is " + str(datetime.utcnow()))
+    if datetime.utcnow() > delete_after:
+        logger.info("Going to terminate weblog instance " + weblog_id + ", now=" + str(datetime.utcnow()) + ", tag=" + str(delete_after))
+        ec2_client.terminate_instances(InstanceIds=[weblog_id])
+        logger.info("Deleted weblog instance " + weblog_id)
+        return
+
+    if not tag_found:
+        logger.info("Creating tag DeleteAfter for instance " + weblog_id + ", value=" + str(delete_after))
+        tags = [{"Key": "DeleteAfter", "Value": str(delete_after)}]
+        ec2_client.create_tags(Resources=[weblog_id], Tags=tags)
