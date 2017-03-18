@@ -3,7 +3,7 @@ Provides a [AWS Lambda](https://aws.amazon.com/lambda) function to populate traf
 
 
 # Theory of operation
-The lambda function runs every minute. The name of the ASG is supplied in an environment variable. The lambda function finds each VPX in the ASG and uses the [Nitro Stats](https://docs.citrix.com/en-us/netscaler/11-1/nitro-api/nitro-rest/api-reference/statistics.html) API to retrieve stats. Then it uses [Boto](http://boto3.readthedocs.io/en/latest/) to populate these statistics in AWS CloudWatch
+The lambda function runs every minute. The name of the ASG is supplied in an environment variable. The lambda function finds each VPX in the ASG and uses the [Nitro Stats](https://docs.citrix.com/en-us/netscaler/11-1/nitro-api/nitro-rest/api-reference/statistics.html) API to retrieve stats. Then it uses [Boto](http://boto3.readthedocs.io/en/latest/) to populate these statistics in AWS CloudWatch. Two sets of metrics are available: per VPX instance, and aggregated across the entire VPX ASG.
 
 
 # Pre-requisites
@@ -11,6 +11,13 @@ The lambda function runs every minute. The name of the ASG is supplied in an env
 * VPC
 * AutoScaling group that launches VPX
 * (Desirable) [Terraform](https://terraform.io) on your local machine to automate the deployment of the lambda function.
+
+# Stats retrieved from NetScaler
+* `totalrequests`
+* `totalrequestbytes`
+* `curclntconections`
+* `surgecount`
+
 
 
 # Usage
