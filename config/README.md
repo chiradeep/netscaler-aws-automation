@@ -7,6 +7,9 @@
 * `dns` - configures a Route53 hosted zone with A records (typically the Elastic IPs attached to the VPXs)
 * `alarms` - creates CloudWatch alarms and ASG policies that control the scaling of the NetScaler VPX AutoScaling Group
 * `stats_lambda` - creates a lambda function that posts NetScaler VPX traffic stats into AWS CloudWatch.
+* `nat_instance` - creates NAT instances (if you want to avoid using NAT gateways)
+* `weblog` - lambda function to export NetScaler Web Logs to AWS S3
+* `traffic_gen` - Set up traffic generators to load test your VPX deployment
 
 
 ## Usage:
