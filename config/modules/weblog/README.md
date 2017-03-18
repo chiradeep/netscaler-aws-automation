@@ -93,6 +93,12 @@ Now you can query these logs:
 
 ```
 SELECT * FROM netscaler_logs where date not like '#%' limit 10
-SELECT avg(time_to_serve) FROM netscaler_logs_03_17_2017 where date not like '#%'
+SELECT avg(time_to_serve) FROM netscaler_logs where date not like '#%'
 ```
 
+The weblogs are partitioned by date, so the queries by date should be faster.
+
+```
+$ aws s3 ls s3://alphabeta-weblogs-abcd6123/
+                           PRE dt=17-03-14/
+```
