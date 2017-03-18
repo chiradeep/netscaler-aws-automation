@@ -1,3 +1,4 @@
+/* Retrieve the newest NAT AMI */
 data "aws_ami" "amzn_nat_ami" {
   most_recent = true
 
@@ -22,6 +23,7 @@ data "aws_ami" "amzn_nat_ami" {
   }
 }
 
+/* TODO: some of these rules can be removed */
 resource "aws_security_group" "nat_sg" {
   name = "access_to_nat"
 
@@ -110,6 +112,7 @@ resource "aws_instance" "nat" {
   key_name = "${var.key_name}"
 }
 
+/* Add a route to point Internet-bound traffic to this NAT instance */
 resource "aws_route" "natroute" {
   count                  = "${var.num_az}"
   route_table_id         = "${var.private_route_table_ids[count.index]}"

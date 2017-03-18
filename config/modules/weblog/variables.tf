@@ -20,11 +20,6 @@ variable "netscaler_security_group_id" {
 }
 
 
-variable "vpx_autoscaling_group_name" {
-  type        = "string"
-  description = "Name of autoscaling group that the VPX belongs to"
-}
-
 variable "netscaler_vpc_lambda_subnet_ids" {
   type        = "list"
   description = "List of subnet ids, e.g., that the lambda function should attach to. Typically same as nsip subnet"
