@@ -9,3 +9,8 @@ variable "key_name" {
 variable "base_name" {
   description = "Used to derive names of AWS resources. Use this to distinguish different enviroments for example"
 }
+
+variable "num_instances" {
+  description = "Number of traffic generator instances"
+  default = 5
+}
