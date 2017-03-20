@@ -3,13 +3,13 @@ Creates a lambda function that manages instances that receive [NetScaler web log
 
 # Theory of operation
 The lambda function polls the EC2 API every 5 minutes to find NetScaler VPX instances that are tagged with a certain key/value. For each discovered VPX instance, it ensures that there is a corresponding instance (a regular Amazon Linux instance) that is set up to receive web logs from the NetScaler VPX.
-When a Weblog instance is created, it executes a userdata script to 
+When a Weblog instance is created, it executes a [userdata](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html#user-data-cloud-init) script to 
 
 * [Install the NetScaler Weblog Client (NSWL)](https://docs.citrix.com/en-us/netscaler/11/system/web-server-logging/installing-netscaler-web-logging-client.html)
 * Configure the NSWL to point to a VPX
 * Install a cron job to copy compressed logs to an S3 buckets, every 10 minutes.
 
-When the VPX's are being autoscaled (see `../vpx` ) the lambda function keeps pace with the size of the VPX autoscaling group (ASG). When the ASG scales-in (reduces in size), the lambda function does not immediately terminate the corresponding Weblog function. Instead it schedules it for deletion by creating a `DeleteAfter` timestamp on the Weblog instance. This allows for any remaining logs that are not yet copied to AWS S3 to be copied. When the lambda function determines that the `DeleteAfter` timestamp is in the past, it deletes the Weblog instance. Therefore at any given moment in time, there could be more Weblog instances than VPX instances.
+When the VPX's are being autoscaled (see `../vpx` ) the lambda function keeps pace with the size of the VPX autoscaling group (ASG). When the ASG scales-in (reduces in size), the lambda function does not immediately terminate the corresponding Weblog function. Instead it schedules it for deletion by creating a `DeleteAfter` timestamp [tag](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Tags.html) on the Weblog instance. This allows for any remaining logs that are not yet copied to AWS S3 to be copied. When the lambda function determines that the `DeleteAfter` timestamp is in the past, it deletes the Weblog instance. Therefore at any given moment in time, there could be more Weblog instances than VPX instances.
 
 The userdata script can be found inside the lambda function. It is parameterized so that the lambda function can insert the S3 bucket name, the VPX IP and the VPX password.
 
@@ -37,6 +37,12 @@ module "weblog" {
 
 # Notes
 Tear down the lambda function using `terraform destroy`. However this will still leave the Weblog instances running (they are not controlled by the terraform config). These can be deleted manually or by using a script to search for instances with the tag `Name=NetScalerWeblogClient`
+
+```
+instance_ids=$(aws ec2 describe-instances --filter Name=tag:Name,Values=NetScalerWeblogClient --output text --query 'Reservations[*].Instances[*].InstanceId')
+aws ec2 terminate-instances --instance-ids=$instance_ids
+
+```
 
 # Analyzing the Weblogs
 The lines in the weblog are created with a [format string](https://docs.citrix.com/en-us/netscaler/11/system/web-server-logging/customize-logging-on-nswl-client.html) that can be seen in the lambda function:
