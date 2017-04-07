@@ -30,4 +30,4 @@ terraform plan -var 'key_name=netscaler_demo' -var 'num_vpx=22' -var 'vpx_size=m
 * The URL to access the loadbalanced endpoints on the VPX(s)
 
 # BUGS
-See https://github.com/chiradeep/netscaler-aws-automation/issues/3 
+See [https://github.com/chiradeep/netscaler-aws-automation/issues/3]
