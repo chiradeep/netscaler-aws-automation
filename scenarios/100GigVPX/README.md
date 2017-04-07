@@ -21,7 +21,7 @@ Components of the config are:
 # Example:
 
 ```
-terraform plan -var 'key_name=netscaler_demo' -var 'num_vpx=22' -var 'vpx_size=m4.4xlarge' -var 'num_backend=20' -var 'base_name=vpx100gig' -var 'aws_region=us-east-1'  -var 'num_az=2' -var 'route53_domain=100gig.xyz.' -var 'route53_zoneid=Z1PC0CAHCW564V'
+terraform apply -var 'key_name=netscaler_demo' -var 'num_vpx=22' -var 'vpx_size=m4.4xlarge' -var 'num_backend=20' -var 'base_name=vpx100gig' -var 'aws_region=us-east-1'  -var 'num_az=2' -var 'route53_domain=100gig.xyz.' -var 'route53_zoneid=Z1PC0CAHCW564V'
 
 ```
 
