@@ -9,8 +9,19 @@ variable "vpx_size" {
   default     = "m4.large"
 }
 
+variable "vpx_asg_max" {
+  description = "The max number of VPX in the autoscaling group."
+  default = 4
+}
+
+variable "vpx_asg_min" {
+  description = "The min number of VPX in the autoscaling group."
+  default = 1
+}
+
 variable "vpx_asg_desired" {
   description = "The number of VPX desired in the autoscaling group. Usually 1 per zone"
+  default = 2
 }
 
 variable "server_subnets" {

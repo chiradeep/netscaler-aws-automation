@@ -24,8 +24,8 @@ output "ami_id" {
 
 resource "aws_autoscaling_group" "vpx-asg" {
   name                 = "${var.name}-ns-autoscale-vpx-asg"
-  max_size             = 4
-  min_size             = 1
+  max_size             = "${var.vpx_asg_max}"
+  min_size             = "${var.vpx_asg_min}"
   desired_capacity     = "${var.vpx_asg_desired}"
   force_delete         = true
   launch_configuration = "${aws_launch_configuration.vpx-lc.name}"
