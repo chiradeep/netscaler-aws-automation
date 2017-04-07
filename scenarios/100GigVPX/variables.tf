@@ -14,6 +14,21 @@ variable "num_az" {
   description = "Number of AZs"
 }
 
+variable "vpx_size" {
+  description = "The instance size of the VPX"
+  default = "m3.large"
+}
+
+variable "num_vpx" {
+  description = "Number of VPX"
+  default  = 10
+}
+
+variable "num_backend" {
+  description = "Number of Backend webservers"
+  default  = 10
+}
+
 variable "route53_zoneid" {
    description = "The route53 zoneid that will be updated with A records pointing to the VPX public IPs. "
 }

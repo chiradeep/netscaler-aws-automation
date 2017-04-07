@@ -1,6 +1,6 @@
 resource "aws_eip" "public_lb_ip" {
   vpc      = true
-  count    = "10"
+  count    = "${var.num_vpx}"
 }
 
 output "public_ips" {
