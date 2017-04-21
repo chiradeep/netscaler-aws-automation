@@ -1,6 +1,10 @@
 # Automate NetScaler configuration in AWS using AWS Lambda and Terraform
 Provides  [AWS Lambda](https://aws.amazon.com/lambda) functions and [Terraform](https://terraform.io) configs to manage the configuration of [Citrix NetScaler VPX instances in AWS](https://aws.amazon.com/marketplace/seller-profile?id=fb9c6078-b60f-47f6-8622-49d5e1d5aca7). A series of Terraform modules are provided to build different automation scenarios. A few automation scenarios, including autoscaling of the VPX in AWS, using the modules, are provided.
 
+<iframe src="https://player.vimeo.com/video/214221885?color=ff9933" width="640" height="360" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
+<p><a href="https://vimeo.com/214221885">Citrix NetScaler VPX automation in AWS</a> from <a href="https://vimeo.com/user10458318">Chiradeep V</a> on <a href="https://vimeo.com">Vimeo</a>.</p>
+<p>Shows automation of NetScaler VPX bringup (bootstrap and initialization), autoscaling of VPX in response to load, reconfiguration from autoscaling backends, posting stats to AWS CloudWatch and access logs to AWS S3 for analysis by AWS Athena</p>
+
 ## Terraform usage
 Terraform is used to
 
